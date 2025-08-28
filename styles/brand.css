@@ -1,0 +1,52 @@
+:root{
+  --bg-1:#0a0e27;      /* deep navy */
+  --bg-2:#0f172a;      /* abyss */
+  --surface:#0b1220;   /* cards / bars */
+  --text:#e5e7eb;
+  --muted:#94a3b8;
+
+  --brand-1:#0ea5e9;   /* cyan */
+  --brand-2:#1d4ed8;   /* electric blue */
+  --brand-3:#22d3ee;   /* aqua accent */
+  --ring:  #22d3ee;
+
+  --glass: rgba(2,6,23,.6);
+  --border:#1f2937;
+}
+
+html,body{height:100%}
+body{
+  margin:0;
+  color:var(--text);
+  background: radial-gradient(80rem 60rem at 70% -10%, rgba(34,211,238,.08), transparent 50%),
+              linear-gradient(180deg,var(--bg-1),var(--bg-2));
+  font-family: system-ui, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+.btn{
+  border:none; cursor:pointer; font-weight:800; color:#02131f;
+  padding:12px 18px; border-radius:999px;
+  background:linear-gradient(90deg,var(--brand-1),var(--brand-2));
+  box-shadow: 0 6px 20px rgba(14,165,233,.25);
+}
+.btn--ghost{
+  background:transparent; color:var(--text);
+  border:1px solid var(--border);
+  box-shadow:none;
+}
+.glass{
+  background:var(--glass); border:1px solid var(--border); backdrop-filter:blur(6px);
+  border-radius:16px;
+}
+.brand-ring {
+  box-shadow:
+    0 0 0 2px rgba(111,227,255,.65),
+    inset 0 0 44px rgba(111,227,255,.14),
+    0 0 60px rgba(79,156,255,.22);
+  background:linear-gradient(90deg,#9adcff, #b1a8ff);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.share{
+  padding:6px 10px; border-radius:999px; text-decoration:none; font-weight:800;
+  background:#e6f6ff; color:#083c74; border:1px solid rgba(79,156,255,.45);
+}

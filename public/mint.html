@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>BlueTubeTV — Event Mint</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    body{margin:0;background:#0a0e27;color:#fff;font-family:system-ui,Arial,sans-serif}
+    .wrap{max-width:520px;margin:40px auto;padding:20px}
+    .card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:20px}
+    button{padding:12px 16px;border-radius:12px;border:0;background:#2563eb;color:#fff;font-weight:700;cursor:pointer}
+    input{width:80px;padding:8px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#fff;text-align:center}
+    .row{display:flex;gap:12px;align-items:center;justify-content:space-between}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h2>BlueTubeTV — Event Mint</h2>
+    <div class="card">
+      <p id="status">Connect wallet to begin.</p>
+      <div class="row">
+        <div>Price: <span id="price">…</span> MATIC</div>
+        <div>Minted: <span id="minted">0</span>/<span id="max">0</span></div>
+      </div>
+      <div style="margin:16px 0" class="row">
+        <label>Qty <input id="qty" type="number" min="1" max="10" value="1"></label>
+        <button id="connect">Connect</button>
+        <button id="mint" disabled>Mint</button>
+      </div>
+      <small style="opacity:.7">Network: Polygon Amoy (testnet)</small>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.15.0/ethers.umd.min.js"></script>
+  <script>
+  (async () => {
+    const CONTRACT = "0x5276c1eec3e5C0C20d5f1798166B3d0160ce3b0d";
+    const ABI = [
+      "function priceWei() view returns (uint256)",
+      "function maxSupply() view returns (uint256)",
+      "function totalMinted() view returns (uint256)",
+      "function saleActive() view returns (bool)",
+      "function mint(uint256 qty) payable"
+    ];
+    const AMOY = {
+      chainId: "0x13882",
+      chainName: "Polygon Amoy",
+      nativeCurrency: { name: "MATIC", symbol: "MATIC", decimals: 18 },
+      rpcUrls: ["https://rpc-amoy.polygon.technology/"],
+      blockExplorerUrls: ["https://amoy.polygonscan.com/"]
+    };
+    const $ = (id) => document.getElementById(id);
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    let signer, contract;
+
+    async function ensureNetwork() {
+      const net = await provider.send("eth_chainId", []);
+      if (net !== AMOY.chainId) {
+        try { await provider.send("wallet_switchEthereumChain", [{ chainId: AMOY.chainId }]); }
+        catch { await provider.send("wallet_addEthereumChain", [AMOY]); }
+      }
+    }
+
+    async function refresh() {
+      const r = new ethers.Contract(CONTRACT, ABI, await provider);
+      const [price, max, minted] = await Promise.all([
+        r.priceWei(), r.maxSupply(), r.totalMinted()
+      ]);
+      $("price").textContent = ethers.formatUnits(price, 18);
+      $("max").textContent = max.toString();
+      $("minted").textContent = minted.toString();
+    }
+
+    $("connect").onclick = async () => {
+      if (!window.ethereum) return alert("Install MetaMask");
+      await ensureNetwork();
+      await provider.send("eth_requestAccounts", []);
+      signer = await provider.getSigner();
+      contract = new ethers.Contract(CONTRACT, ABI, signer);
+      $("status").textContent = "Wallet connected.";
+      $("mint").disabled = false;
+      refresh();
+    };
+
+    $("mint").onclick = async () => {
+      const qty = parseInt($("qty").value || "1");
+      const price = await contract.priceWei();
+      const tx = await contract.mint(qty, { value: price * BigInt(qty) });
+      $("status").textContent = "Minting… tx: " + tx.hash;
+      await tx.wait();
+      $("status").textContent = "Success! tx: " + tx.hash;
+      refresh();
+    };
+
+    refresh().catch(()=>{});
+  })();
+  </script>
+</body>
+</html>

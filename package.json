@@ -1,0 +1,24 @@
+{
+  "name": "bluetube-chain",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.22.6",
+    "micro": "^10.0.1",
+    "next": "^14.2.32",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.56.0",
+    "hls.js": "^1.6.11",
+    "stripe": "^18.5.0"
+  }
+}

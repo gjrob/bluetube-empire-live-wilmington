@@ -1,0 +1,11 @@
+{
+  "name": "BlueTubeTV CAAMP Pass #2",
+  "description": "A live collectible from the BlueTubeTV CAAMP event. Includes poster image and full video.",
+  "image": "ipfs://bafybeiepaiauvupdmefdwju5qnwv4kxf6dvpe324lmb22kucvun6bndkwe/caamp2.png",
+  "animation_url": "ipfs://QmVideoCID/caamp2.mp4",
+  "external_url": "https://www.bluetubetv.live/",
+  "attributes": [
+    { "trait_type": "Media", "value": "Image" },
+    { "trait_type": "Event", "value": "CAAMP" }
+  ]
+}
