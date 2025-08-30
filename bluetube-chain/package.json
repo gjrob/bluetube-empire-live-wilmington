@@ -1,0 +1,14 @@
+{
+  "name": "bluetube-chain",
+  "private": true,
+  "version": "1.0.0",
+  "license": "MIT",
+  "devDependencies": {
+    "hardhat": "^2.22.8",
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "dotenv": "^16.4.5"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.2"
+  }
+}
