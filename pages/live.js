@@ -1,4 +1,3 @@
-// pages/live.js
 import { useEffect, useRef, useState } from "react";
 import Head from "next/head";
 import BrandTheme from "../components/BrandTheme";
@@ -7,23 +6,26 @@ import Offline from "../components/Offline";
 import TipBar from "../components/TipBar";
 import ViewerCount from "../components/ViewerCount";
 
-export default function Live() {
-  const ANGLES = [
+// Accept props; fall back to env so /live continues to work.
+export default function Live({ meta, angles }) {
+  const ANGLES = angles && Array.isArray(angles) ? angles : [
     { name: "Cam A", url: process.env.NEXT_PUBLIC_HLS_A || process.env.NEXT_PUBLIC_LIVEPEER_HLS || "" },
     { name: "Cam B", url: process.env.NEXT_PUBLIC_HLS_B || "" },
   ];
 
-  const [idx, setIdx] = useState(0);        // which camera in single view
-  const [split, setSplit] = useState(false); // split mode on/off
-  const [audioIdx, setAudioIdx] = useState(0); // which camera’s audio in split
+  const pageTitle = meta?.title || "BlueTubeTV • Wilmington Live";
+
+  const [idx, setIdx] = useState(0);
+  const [split, setSplit] = useState(false);
+  const [audioIdx, setAudioIdx] = useState(0);
 
   const activeUrl = ANGLES[idx]?.url || "";
-  const playbackId = (activeUrl.split("/")[4]) || "";
+  const playbackId = (activeUrl?.split?.("/")?.[4]) || "";
 
   return (
     <>
       <Head>
-        <title>BlueTubeTV • Wilmington Live</title>
+        <title>{pageTitle}</title>
         <meta name="description" content="Live from Wilmington. Tips keep the cameras rolling." />
       </Head>
 
@@ -39,7 +41,6 @@ export default function Live() {
             </div>
           </header>
 
-          {/* Angle controls */}
           <div className="anglebar">
             {ANGLES.map((a, i) => (
               <button
@@ -57,87 +58,59 @@ export default function Live() {
               type="button"
               className={`angle ${split ? "angle--active" : ""}`}
               onClick={() => { setSplit(s => !s); setAudioIdx(0); }}
-              disabled={!ANGLES[0].url || !ANGLES[1].url}
+              disabled={!ANGLES[0]?.url || !ANGLES[1]?.url}
               title="Show both"
             >
               Split
             </button>
           </div>
 
-          {/* Player(s) */}
           {split ? (
             <div className="grid2">
               <section className="player-shell brand-ring">
-                <PlayerSection hlsUrl={ANGLES[0].url} label="Cam A" active muted={audioIdx !== 0} />
+                <PlayerSection hlsUrl={ANGLES[0]?.url} label="Cam A" active muted={audioIdx !== 0} />
               </section>
               <section className="player-shell brand-ring">
-                <PlayerSection hlsUrl={ANGLES[1].url} label="Cam B" active muted={audioIdx !== 1} />
+                <PlayerSection hlsUrl={ANGLES[1]?.url} label="Cam B" active muted={audioIdx !== 1} />
               </section>
             </div>
           ) : (
             <section className="player-shell brand-ring">
-              <PlayerSection hlsUrl={activeUrl} label={ANGLES[idx].name} active muted={false} />
+              <PlayerSection hlsUrl={activeUrl} label={ANGLES[idx]?.name || "Cam"} active muted={false} />
             </section>
           )}
 
-          {/* Audio selector (only when split) */}
           {split && (
             <div className="anglebar" style={{ marginTop: 6 }}>
               <span style={{ color: "#dbe7ff" }}>Audio:</span>
-              <button
-                type="button"
-                className={`angle ${audioIdx === 0 ? "angle--active" : ""}`}
-                onClick={() => setAudioIdx(0)}
-              >
-                Cam A
-              </button>
-              <button
-                type="button"
-                className={`angle ${audioIdx === 1 ? "angle--active" : ""}`}
-                onClick={() => setAudioIdx(1)}
-              >
-                Cam B
-              </button>
+              <button type="button" className={`angle ${audioIdx === 0 ? "angle--active" : ""}`} onClick={() => setAudioIdx(0)}>Cam A</button>
+              <button type="button" className={`angle ${audioIdx === 1 ? "angle--active" : ""}`} onClick={() => setAudioIdx(1)}>Cam B</button>
             </div>
           )}
-        </div> {/* ← close .page */}
+        </div>
 
-        {/* Optional: <TipTicker /> */}
-        <TipBar />
-
-        {/* styles scoped to this page */}
+        {/* Pipe the creator’s Stripe link into TipBar if present */}
+        <TipBar tipUrl={meta?.stripeLink} />
         <style jsx>{`
           .page { max-width: 1100px; margin: 0 auto; padding: 16px 16px 96px; }
-
           .topbar {
             position: sticky; top:0; display:flex; align-items:center; gap:12px; padding:12px 0;
             background: linear-gradient(180deg, rgba(12,28,66,.40), rgba(12,28,66,.08));
             backdrop-filter: blur(6px); border-bottom: 1px solid rgba(42,79,168,.35);
           }
-          .pill.live {
-            padding:4px 10px; border-radius:999px; font-weight:700;
-            background:#c8ffe6; color:#064e3b; border:1px solid rgba(16,185,129,.35);
-          }
+          .pill.live { padding:4px 10px; border-radius:999px; font-weight:700;
+            background:#c8ffe6; color:#064e3b; border:1px solid rgba(16,185,129,.35); }
           .right { color:#dbe7ff; display:flex; align-items:center; gap:8px; }
-
           .anglebar { display:flex; gap:8px; margin:12px 0 8px; align-items:center; }
-          .angle {
-            padding:6px 10px; border-radius:999px; border:1px solid rgba(79,156,255,.45);
-            background:#e6f2ff; color:#082b5c; font-weight:800; cursor:pointer;
-          }
+          .angle { padding:6px 10px; border-radius:999px; border:1px solid rgba(79,156,255,.45);
+            background:#e6f2ff; color:#082b5c; font-weight:800; cursor:pointer; }
           .angle:disabled { opacity:.5; cursor:not-allowed; }
           .angle--active { background:#6fe3ff; color:#052342; }
-
-          .player-shell {
-            border-radius:18px; overflow:hidden; background:#0d1f44;
-            box-shadow:0 10px 28px rgba(0,0,0,.30); margin-top: 8px;
-          }
-          .brand-ring {
-            box-shadow: 0 0 0 2px rgba(111,227,255,.65),
-                        inset 0 0 44px rgba(111,227,255,.14),
-                        0 0 60px rgba(79,156,255,.22);
-          }
-
+          .player-shell { border-radius:18px; overflow:hidden; background:#0d1f44;
+            box-shadow:0 10px 28px rgba(0,0,0,.30); margin-top: 8px; }
+          .brand-ring { box-shadow: 0 0 0 2px rgba(111,227,255,.65),
+                          inset 0 0 44px rgba(111,227,255,.14),
+                          0 0 60px rgba(79,156,255,.22); }
           .grid2 { display:grid; gap:12px; grid-template-columns: 1fr 1fr; }
           @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
         `}</style>
@@ -153,7 +126,6 @@ function PlayerSection({ hlsUrl, label, active = true, muted = false }) {
   useEffect(() => {
     if (!active || !hlsUrl) return;
     let hls;
-
     const boot = async () => {
       const video = videoRef.current; if (!video) return;
       const { default: Hls } = await import("hls.js");
@@ -168,7 +140,6 @@ function PlayerSection({ hlsUrl, label, active = true, muted = false }) {
         video.addEventListener("loadedmetadata", () => { setOnline(true); video.play().catch(()=>{}); }, { once:true });
       }
     };
-
     boot();
     return () => { try { if (hls) hls.destroy(); } catch {} setOnline(false); };
   }, [hlsUrl, active]);
@@ -177,7 +148,6 @@ function PlayerSection({ hlsUrl, label, active = true, muted = false }) {
 
   return (
     <div style={{ position: "relative" }}>
-      {/* angle badge */}
       <span style={{
         position: "absolute", left: 12, top: 10, zIndex: 2,
         padding: "4px 8px", borderRadius: 999, fontWeight: 800,
@@ -185,18 +155,8 @@ function PlayerSection({ hlsUrl, label, active = true, muted = false }) {
       }}>
         {label}
       </span>
-
-      <video
-        ref={videoRef}
-        controls
-        playsInline
-        preload="metadata"
-        poster="/offline-poster.png
-        "
-        muted={muted}
-        style={{ width: "100%", aspectRatio: "16/9", background: "#000" }}
-      />
-
+      <video ref={videoRef} controls playsInline preload="metadata" poster="/offline-poster.png" muted={muted}
+             style={{ width: "100%", aspectRatio: "16/9", background: "#000" }} />
       {!online && <Offline variant="badge" />}
     </div>
   );
