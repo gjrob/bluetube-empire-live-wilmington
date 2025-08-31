@@ -5,12 +5,14 @@ import BrandTheme from "../components/BrandTheme";
 import BrandLockup from "../components/BrandLockup";
 import Offline from "../components/Offline";
 import ViewerCount from "../components/ViewerCount";
-import { ethers } from "ethers";
+
+// ✅ ethers v6 imports
+import { BrowserProvider, Contract, parseEther } from "ethers";
 
 // ── ENV
-const TIPJAR_ADDR = process.env.NEXT_PUBLIC_TIPJAR_ADDRESS;
-const PAYOUT_ADDR = process.env.NEXT_PUBLIC_PAYOUT_ADDRESS;
-const MOMENT_ADDR = process.env.NEXT_PUBLIC_MOMENT_ADDRESS;
+const TIPJAR_ADDR  = process.env.NEXT_PUBLIC_TIPJAR_ADDRESS;   // fixed typo
+const PAYOUT_ADDR  = process.env.NEXT_PUBLIC_PAYOUT_ADDRESS;
+const MOMENT_ADDR  = process.env.NEXT_PUBLIC_MOMENT_ADDRESS;
 
 // ── Tiny ABIs (common patterns)
 const TIPJAR_ABI = [
@@ -27,21 +29,12 @@ const MOMENT_ABI = [
   "function mintWithURI(string uri) returns (uint256)",
 ];
 
-// ── v5/v6 helpers
-const parseEth = (v) =>
-  ethers?.parseEther ? ethers.parseEther(v) : ethers.utils.parseEther(v);
-
+// ── v6 helpers
 const getProviderAndSigner = async () => {
-  if (!window?.ethereum) throw new Error("No wallet found");
+  if (typeof window === "undefined" || !window.ethereum) throw new Error("No wallet found");
   await window.ethereum.request?.({ method: "eth_requestAccounts" });
-  let provider, signer;
-  if (ethers?.BrowserProvider) {
-    provider = new ethers.BrowserProvider(window.ethereum); // v6
-    signer = await provider.getSigner();
-  } else {
-    provider = new ethers.providers.Web3Provider(window.ethereum); // v5
-    signer = provider.getSigner();
-  }
+  const provider = new BrowserProvider(window.ethereum);
+  const signer = await provider.getSigner();
   const account = await signer.getAddress();
   return { provider, signer, account };
 };
@@ -54,9 +47,7 @@ function ShareButton() {
   }, []);
   const text = encodeURIComponent("🎥 Live now — tip to keep the cameras rolling!");
   const via = "BlueTubeTV";
-  const url = `https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(
-    href
-  )}&via=${via}`;
+  const url = `https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(href)}&via=${via}`;
   return (
     <a className="angle" href={url} target="_blank" rel="noreferrer" title="Share on X/Twitter">
       Share ↗
@@ -96,22 +87,12 @@ function ChatPanel() {
       </div>
       <iframe src={src} allow="autoplay" scrolling="auto" />
       <style jsx>{`
-        .chatPanel {
-          min-height: 520px;
-        }
+        .chatPanel { min-height: 520px; }
         .chatHead {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 10px 12px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,.08);
         }
-        iframe {
-          width: 100%;
-          height: 480px;
-          border: 0;
-          background: #050b20;
-        }
+        iframe { width: 100%; height: 480px; border: 0; background: #050b20; }
       `}</style>
     </aside>
   );
@@ -137,44 +118,22 @@ function SponsorTicker({
       </div>
       <style jsx>{`
         .ticker {
-          position: fixed;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          z-index: 50;
-          background: linear-gradient(90deg, #0a0e27, #1a237e, #0f172a);
-          border-top: 1px solid rgba(255, 255, 255, 0.12);
-          box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.35);
+          position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+          background: linear-gradient(90deg,#0a0e27,#1a237e,#0f172a);
+          border-top: 1px solid rgba(255,255,255,.12);
+          box-shadow: 0 -6px 18px rgba(0,0,0,.35);
         }
         .ticker-track {
-          display: flex;
-          gap: 40px;
-          white-space: nowrap;
-          overflow: hidden;
-          animation: ticker 28s linear infinite;
-          padding: 10px 16px;
-          font-weight: 800;
-          color: #dbe7ff;
+          display:flex; gap:40px; white-space:nowrap; overflow:hidden;
+          animation: ticker 28s linear infinite; padding:10px 16px;
+          font-weight:800; color:#dbe7ff;
         }
-        .ticker:hover .ticker-track {
-          animation-play-state: paused;
-        }
+        .ticker:hover .ticker-track { animation-play-state: paused; }
         .t-badge {
-          background: #4f9cff;
-          color: #fff;
-          padding: 4px 8px;
-          border-radius: 999px;
-          margin-right: 10px;
-          font-size: 0.8rem;
+          background:#4f9cff; color:#fff; padding:4px 8px; border-radius:999px;
+          margin-right:10px; font-size:.8rem;
         }
-        @keyframes ticker {
-          from {
-            transform: translateX(0);
-          }
-          to {
-            transform: translateX(-50%);
-          }
-        }
+        @keyframes ticker { from{transform:translateX(0)} to{transform:translateX(-50%)} }
       `}</style>
     </div>
   );
@@ -185,10 +144,7 @@ export default function Live({ meta, angles, handle }) {
   const ANGLES = Array.isArray(angles)
     ? angles
     : [
-        {
-          name: "Cam A",
-          url: process.env.NEXT_PUBLIC_HLS_A || process.env.NEXT_PUBLIC_LIVEPEER_HLS || "",
-        },
+        { name: "Cam A", url: process.env.NEXT_PUBLIC_HLS_A || process.env.NEXT_PUBLIC_LIVEPEER_HLS || "" },
         { name: "Cam B", url: process.env.NEXT_PUBLIC_HLS_B || "" },
       ];
 
@@ -228,61 +184,86 @@ export default function Live({ meta, angles, handle }) {
     },
     [handle]
   );
+const handleCryptoTip = useCallback(async (amount = 10) => {
+  const pending = typeof window !== 'undefined' ? window.open('', '_blank', 'noopener') : null;
+  try {
+    const r = await fetch('/api/coinbase/create-charge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount,
+        currency: 'USD',
+        name: `BlueTubeTV Tip $${amount}`,
+        description: 'Thanks for supporting the stream!',
+        metadata: { handle, source: 'live' },
+        redirect_url: typeof window !== 'undefined' ? window.location.href : undefined,
+        cancel_url:   typeof window !== 'undefined' ? window.location.href : undefined,
+      }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok || !data?.hosted_url) {
+      if (pending) pending.close();
+      const msg = (typeof data?.error === 'string' ? data.error : 'Crypto checkout failed') +
+                  (r.status ? ` (HTTP ${r.status})` : '');
+      alert(msg);
+      console.warn('Coinbase create-charge:', data);
+      return;
+    }
+    if (pending) pending.location = data.hosted_url;
+    else window.open(data.hosted_url, '_blank', 'noopener');
+  } catch (e) {
+    if (pending) pending.close();
+    console.error(e);
+    alert('Crypto checkout failed (network).');
+  }
+}, [handle]);
 
   // ── Optional chain switcher (single, fixed)
   const ensureLocalChain = useCallback(async () => {
-    const ethereum = window?.ethereum;
+    const ethereum = typeof window !== "undefined" ? window.ethereum : null;
     if (!ethereum) throw new Error("No wallet found");
     const HH = "0x7A69"; // 31337
     try {
-      await ethereum.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: HH }],
-      });
+      await ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: HH }] });
     } catch (e) {
       if (e?.code === 4902) {
         await ethereum.request({
           method: "wallet_addEthereumChain",
-          params: [
-            {
-              chainId: HH,
-              chainName: "Localhost 8545 (Hardhat)",
-              rpcUrls: ["http://127.0.0.1:8545"],
-              nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
-            },
-          ],
+          params: [{
+            chainId: HH,
+            chainName: "Localhost 8545 (Hardhat)",
+            rpcUrls: ["http://127.0.0.1:8545"],
+            nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+          }],
         });
-        await ethereum.request({
-          method: "wallet_switchEthereumChain",
-          params: [{ chainId: HH }],
-        });
+        await ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: HH }] });
       } else {
         throw e;
       }
     }
   }, []);
 
-  // ── ETH tip (kept for later; won’t show a button in UI)
+  // ── ETH tip (v6)
   const handleEthTip = useCallback(async (ethAmount = "0.002") => {
     await ensureLocalChain();
     try {
       const { signer, account } = await getProviderAndSigner();
-      const value = parseEth(ethAmount);
+      const value = parseEther(ethAmount);
 
       if (TIPJAR_ADDR) {
-        const jar = new ethers.Contract(TIPJAR_ADDR, TIPJAR_ABI, signer);
+        const jar = new Contract(TIPJAR_ADDR, TIPJAR_ABI, signer);
         let tx;
         try {
-          tx = await jar.tip({ value });
+          tx = await jar["tip()"]({ value });
         } catch {
           try {
-            tx = await jar.tipTo(PAYOUT_ADDR || account, { value });
+            tx = await jar["tipTo(address)"](PAYOUT_ADDR || account, { value });
           } catch {
             try {
               tx = await jar["tip(address)"](PAYOUT_ADDR || account, { value });
             } catch {
               try {
-                tx = await jar.donate({ value });
+                tx = await jar["donate()"]({ value });
               } catch {
                 tx = await signer.sendTransaction({ to: PAYOUT_ADDR || account, value });
               }
@@ -302,35 +283,31 @@ export default function Live({ meta, angles, handle }) {
     }
   }, [ensureLocalChain]);
 
-  // ── Mint moment (kept for later; no UI button by default)
+  // ── Mint moment (v6)
   const handleMintMoment = useCallback(async () => {
     await ensureLocalChain();
     try {
       if (!MOMENT_ADDR) throw new Error("MOMENT contract address missing");
       const { signer, account } = await getProviderAndSigner();
-      const nft = new ethers.Contract(MOMENT_ADDR, MOMENT_ABI, signer);
+      const nft = new Contract(MOMENT_ADDR, MOMENT_ABI, signer);
 
       let tx;
       try {
-        tx = await nft.mint();
+        tx = await nft["mint()"]();
       } catch {
         try {
-          tx = await nft.mintTo(account);
+          tx = await nft["mintTo(address)"](account);
         } catch {
           try {
-            tx = await nft.safeMint(account);
+            tx = await nft["safeMint(address)"](account);
           } catch {
             const now = new Date().toISOString();
-            const meta = {
-              name: "BlueTubeTV Moment",
-              description: "Minted live on stream",
-              timestamp: now,
-            };
+            const meta = { name: "BlueTubeTV Moment", description: "Minted live on stream", timestamp: now };
             const dataURI = `data:application/json,${encodeURIComponent(JSON.stringify(meta))}`;
             try {
-              tx = await nft.mintMoment(dataURI);
+              tx = await nft["mintMoment(string)"](dataURI);
             } catch {
-              tx = await nft.mintWithURI(dataURI);
+              tx = await nft["mintWithURI(string)"](dataURI);
             }
           }
         }
@@ -358,18 +335,10 @@ export default function Live({ meta, angles, handle }) {
             <span className="pill live">LIVE • Wilmington</span>
             <BrandLockup size="md" inline />
             <div style={{ flex: 1 }} />
-            <div className="right">
-              <span>@BlueTubeTV • tip to support ⚡</span>
-              {playbackId ? <ViewerCount playbackId={playbackId} /> : null}
-              <button className="angle" onClick={() => startStripe(1000, "tip")} title="Tip $10">
-                💳 Tip $10
-              </button>
-              <button className="angle" onClick={() => setShowChat((v) => !v)} title="Toggle chat">
-                {showChat ? "Hide Chat" : "Chat ▸"}
-              </button>
-              <ShareButton />
-              <CopyLink />
-            </div>
+  <button className="angle" onClick={() => handleCryptoTip(10)}>Crypto Tip $10</button>
+<button className="angle" onClick={() => handleEthTip('0.002')}>ETH Tip</button>
+<button className="angle" onClick={handleMintMoment}>Mint</button>
+
           </header>
 
           {/* Angle controls */}
@@ -379,10 +348,7 @@ export default function Live({ meta, angles, handle }) {
                 key={i}
                 type="button"
                 className={`angle ${i === idx && !split ? "angle--active" : ""}`}
-                onClick={() => {
-                  setSplit(false);
-                  setIdx(i);
-                }}
+                onClick={() => { setSplit(false); setIdx(i); }}
                 disabled={!a.url}
                 title={a.url ? a.url : "No URL set"}
               >
@@ -392,10 +358,7 @@ export default function Live({ meta, angles, handle }) {
             <button
               type="button"
               className={`angle ${split ? "angle--active" : ""}`}
-              onClick={() => {
-                setSplit((s) => !s);
-                setAudioIdx(0);
-              }}
+              onClick={() => { setSplit((s) => !s); setAudioIdx(0); }}
               disabled={!ANGLES[0]?.url || !ANGLES[1]?.url}
               title="Show both"
             >
@@ -447,195 +410,82 @@ export default function Live({ meta, angles, handle }) {
         <SponsorTicker />
 
         {/* One canonical tip bar (card only for speed) */}
-        <div id="tipbar">
-          {[5, 10, 25, 50].map((amt) => (
-            <button key={`card-${amt}`} className="tipbtn" onClick={() => startStripe(amt * 100, "tip")}>
-              Card Tip ${amt}
-            </button>
-          ))}
-          <button className="tipbtn" onClick={() => startStripe(10000, "sponsor")}>
-            Sponsor
-          </button>
-        </div>
+     <div id="tipbar">
+  {[5,10,25,50].map(amt => (
+    <button key={`card-${amt}`} className="tipbtn" onClick={() => startStripe(amt*100, "tip")}>
+      Card Tip ${amt}
+    </button>
+  ))}
+  {[5,10,25,50].map(amt => (
+    <button key={`c-${amt}`} className="tipbtn" onClick={() => handleCryptoTip(amt)}>
+      Crypto Tip ${amt}
+    </button>
+  ))}
+  <button className="tipbtn" onClick={() => handleEthTip('0.002')}>ETH Tip</button>
+  <button className="tipbtn" onClick={handleMintMoment}>Mint this moment</button>
+  <button className="tipbtn" onClick={() => startStripe(10000, "sponsor")}>Sponsor</button>
+</div>
+
 
         <style jsx>{`
           :root {
-            --bg-1: #07132e;
-            --bg-2: #0e224d;
-            --ink: #dbe7ff;
-            --accent: #6fe3ff;
-            --accent-2: #4f9cff;
-            --pill: #e6f2ff;
-            --pill-text: #082b5c;
-            --ring-outer: rgba(111, 227, 255, 0.65);
-            --ring-inner: rgba(111, 227, 255, 0.14);
-            --ring-shadow: rgba(79, 156, 255, 0.22);
+            --bg-1:#07132e; --bg-2:#0e224d; --ink:#dbe7ff; --accent:#6fe3ff; --accent-2:#4f9cff;
+            --pill:#e6f2ff; --pill-text:#082b5c; --ring-outer:rgba(111,227,255,.65);
+            --ring-inner:rgba(111,227,255,.14); --ring-shadow:rgba(79,156,255,.22);
           }
           .page {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 20px 18px 146px;
-            color: var(--ink);
-            background:
-              radial-gradient(1200px 700px at 14% 12%, rgba(79, 156, 255, 0.16), transparent 55%),
-              radial-gradient(1000px 600px at 86% 90%, rgba(111, 227, 255, 0.1), transparent 55%),
-              linear-gradient(180deg, var(--bg-1), var(--bg-2));
-            border-radius: 18px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35) inset;
+            max-width:1280px; margin:0 auto; padding:20px 18px 146px; color:var(--ink);
+            background: radial-gradient(1200px 700px at 14% 12%, rgba(79,156,255,.16), transparent 55%),
+                        radial-gradient(1000px 600px at 86% 90%, rgba(111,227,255,.1), transparent 55%),
+                        linear-gradient(180deg, var(--bg-1), var(--bg-2));
+            border-radius:18px; box-shadow:0 20px 60px rgba(0,0,0,.35) inset;
           }
           .topbar {
-            position: sticky;
-            top: 0;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 0;
-            background: linear-gradient(180deg, rgba(12, 28, 66, 0.35), rgba(12, 28, 66, 0.05));
-            backdrop-filter: blur(6px);
-            border-bottom: 1px solid rgba(42, 79, 168, 0.35);
-            z-index: 5;
+            position:sticky; top:0; display:flex; align-items:center; gap:12px; padding:12px 0;
+            background:linear-gradient(180deg, rgba(12,28,66,.35), rgba(12,28,66,.05));
+            backdrop-filter:blur(6px); border-bottom:1px solid rgba(42,79,168,.35); z-index:5;
           }
           .pill.live {
-            padding: 4px 10px;
-            border-radius: 999px;
-            font-weight: 800;
-            background: #c8ffe6;
-            color: #064e3b;
-            border: 1px solid rgba(16, 185, 129, 0.35);
+            padding:4px 10px; border-radius:999px; font-weight:800;
+            background:#c8ffe6; color:#064e3b; border:1px solid rgba(16,185,129,.35);
           }
-          .right {
-            color: var(--ink);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-          }
-          .anglebar {
-            display: flex;
-            gap: 8px;
-            margin: 12px 0 8px;
-            align-items: center;
-            flex-wrap: wrap;
-          }
+          .right { color:var(--ink); display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+          .anglebar { display:flex; gap:8px; margin:12px 0 8px; align-items:center; flex-wrap:wrap; }
           .angle {
-            padding: 8px 12px;
-            border-radius: 999px;
-            border: 1px solid rgba(79, 156, 255, 0.45);
-            background: var(--pill);
-            color: var(--pill-text);
-            font-weight: 800;
-            cursor: pointer;
-            transition: transform 0.12s ease, box-shadow 0.12s ease;
+            padding:8px 12px; border-radius:999px; border:1px solid rgba(79,156,255,.45);
+            background:var(--pill); color:var(--pill-text); font-weight:800; cursor:pointer;
+            transition: transform .12s ease, box-shadow .12s ease;
           }
-          .angle:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
-          }
-          .angle:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-          }
-          .angle--active {
-            background: var(--accent);
-            color: #052342;
-          }
+          .angle:hover { transform:translateY(-1px); box-shadow:0 6px 18px rgba(0,0,0,.25); }
+          .angle:disabled { opacity:.5; cursor:not-allowed; }
+          .angle--active { background:var(--accent); color:#052342; }
           .player-shell {
-            border-radius: 20px;
-            overflow: hidden;
-            background: #0b1d41;
-            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
-            margin-top: 8px;
+            border-radius:20px; overflow:hidden; background:#0b1d41; box-shadow:0 10px 28px rgba(0,0,0,.3);
+            margin-top:8px;
           }
-          .brand-ring {
-            box-shadow: 0 0 0 2px var(--ring-outer), inset 0 0 44px var(--ring-inner),
-              0 0 60px var(--ring-shadow);
+          .brand-ring { box-shadow:0 0 0 2px var(--ring-outer), inset 0 0 44px var(--ring-inner), 0 0 60px var(--ring-shadow); }
+          .grid { display:grid; gap:16px; }
+          @media (min-width:1200px){ .grid.grid--chat{ grid-template-columns:2fr .95fr } .grid.grid--nochat{ grid-template-columns:1fr } }
+          @media (max-width:1199px){ .grid{ grid-template-columns:1fr } }
+          .card { background:#0b1338; border-radius:14px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,.35); }
+          .grid2 { display:grid; gap:12px; grid-template-columns:1fr 1fr; }
+          @media (max-width:900px){ .grid2{ grid-template-columns:1fr } }
+          :global(.video-badge){
+            position:absolute; left:12px; top:10px; z-index:2; padding:4px 8px; border-radius:999px; font-weight:800;
+            background:#e6f6ff; color:#082b5c; border:1px solid rgba(79,156,255,.45);
           }
-          .grid {
-            display: grid;
-            gap: 16px;
-          }
-          @media (min-width: 1200px) {
-            .grid.grid--chat {
-              grid-template-columns: 2fr 0.95fr;
-            }
-            .grid.grid--nochat {
-              grid-template-columns: 1fr;
-            }
-          }
-          @media (max-width: 1199px) {
-            .grid {
-              grid-template-columns: 1fr;
-            }
-          }
-          .card {
-            background: #0b1338;
-            border-radius: 14px;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-          }
-          .grid2 {
-            display: grid;
-            gap: 12px;
-            grid-template-columns: 1fr 1fr;
-          }
-          @media (max-width: 900px) {
-            .grid2 {
-              grid-template-columns: 1fr;
-            }
-          }
-          :global(.video-badge) {
-            position: absolute;
-            left: 12px;
-            top: 10px;
-            z-index: 2;
-            padding: 4px 8px;
-            border-radius: 999px;
-            font-weight: 800;
-            background: #e6f6ff;
-            color: #082b5c;
-            border: 1px solid rgba(79, 156, 255, 0.45);
-          }
-
-          /* Raised Tipbar (above ticker) */
           #tipbar {
-            position: fixed;
-            left: 0;
-            right: 0;
-            bottom: 56px; /* sits above ticker */
-            padding: 10px 14px;
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            z-index: 60;
-            pointer-events: none; /* stream UI remains clickable */
+            position:fixed; left:0; right:0; bottom:56px; padding:10px 14px; display:flex; justify-content:center; gap:12px;
+            z-index:60; pointer-events:none;
           }
           #tipbar .tipbtn {
-            pointer-events: auto; /* buttons clickable */
-            padding: 10px 16px;
-            border: 0;
-            border-radius: 12px;
-            font-weight: 700;
-            letter-spacing: 0.2px;
-            cursor: pointer;
-            background: linear-gradient(135deg, #1d4ed8, #2563eb);
-            color: #fff;
-            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
-            transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease;
+            pointer-events:auto; padding:10px 16px; border:0; border-radius:12px; font-weight:700; letter-spacing:.2px; cursor:pointer;
+            background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff; box-shadow:0 8px 24px rgba(37,99,235,.35);
+            transition: transform .15s ease, box-shadow .15s ease, opacity .2s ease;
           }
-          #tipbar .tipbtn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 10px 28px rgba(37, 99, 235, 0.45);
-          }
-          #tipbar .tipbtn:active {
-            transform: translateY(0);
-            opacity: 0.9;
-          }
-          @media (max-width: 480px) {
-            #tipbar {
-              bottom: 64px;
-              gap: 10px;
-            }
-          }
+          #tipbar .tipbtn:hover { transform:translateY(-1px); box-shadow:0 10px 28px rgba(37,99,235,.45); }
+          #tipbar .tipbtn:active { transform:translateY(0); opacity:.9; }
+          @media (max-width:480px){ #tipbar{ bottom:64px; gap:10px; } }
         `}</style>
       </BrandTheme>
     </>
@@ -656,9 +506,7 @@ function PlayerSection({ hlsUrl, label, active = true, muted = false }) {
       const { default: Hls } = await import("hls.js");
       if (Hls.isSupported()) {
         hls = new Hls({ lowLatencyMode: true, maxBufferLength: 10, liveBackBufferLength: 30 });
-        hls.on(Hls.Events.ERROR, (_, d) => {
-          if (d?.fatal) setOnline(false);
-        });
+        hls.on(Hls.Events.ERROR, (_, d) => { if (d?.fatal) setOnline(false); });
         hls.attachMedia(video);
         hls.on(Hls.Events.MEDIA_ATTACHED, () => hls.loadSource(hlsUrl));
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -667,45 +515,25 @@ function PlayerSection({ hlsUrl, label, active = true, muted = false }) {
         });
       } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
         video.src = hlsUrl;
-        video.addEventListener(
-          "loadedmetadata",
-          () => {
-            setOnline(true);
-            video.play().catch(() => {});
-          },
-          { once: true }
-        );
+        video.addEventListener("loadedmetadata", () => {
+          setOnline(true);
+          video.play().catch(() => {});
+        }, { once: true });
       }
     };
     boot();
-    return () => {
-      try {
-        if (hls) hls.destroy();
-      } catch {}
-      setOnline(false);
-    };
+    return () => { try { if (hls) hls.destroy(); } catch {} setOnline(false); };
   }, [hlsUrl, active]);
 
-  useEffect(() => {
-    if (videoRef.current) videoRef.current.muted = !!muted;
-  }, [muted]);
+  useEffect(() => { if (videoRef.current) videoRef.current.muted = !!muted; }, [muted]);
 
   return (
     <div style={{ position: "relative" }}>
-      <span
-        style={{
-          position: "absolute",
-          left: 12,
-          top: 10,
-          zIndex: 2,
-          padding: "4px 8px",
-          borderRadius: 999,
-          fontWeight: 800,
-          background: "#e6f6ff",
-          color: "#082b5c",
-          border: "1px solid rgba(79,156,255,.45)",
-        }}
-      >
+      <span style={{
+        position: "absolute", left: 12, top: 10, zIndex: 2, padding: "4px 8px",
+        borderRadius: 999, fontWeight: 800, background: "#e6f6ff", color: "#082b5c",
+        border: "1px solid rgba(79,156,255,.45)",
+      }}>
         {label}
       </span>
       <video
