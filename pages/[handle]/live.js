@@ -7,14 +7,11 @@ export async function getServerSideProps(ctx) {
 
   const { data, error } = await supabase
     .from("creator_profiles")
-    .select("display_name,title,hls_a,hls_b,stripe_link")
+    .select("id, display_name, title, hls_a, hls_b, stripe_link")
     .eq("handle", handle)
     .maybeSingle();
 
-  if (error || !data) {
-    // 404 if unknown handle
-    return { notFound: true };
-  }
+  if (error || !data) return { notFound: true };
 
   const angles = [
     { name: "Cam A", url: data.hls_a || "" },
@@ -26,9 +23,7 @@ export async function getServerSideProps(ctx) {
     stripeLink: data.stripe_link || null,
   };
 
-  return { props: { angles, meta } };
+  return { props: { angles, meta, handle, creatorId: data.id || null } };
 }
 
-export default function CreatorLive(props) {
-  return <Live {...props} />;
-}
+export default function CreatorLive(props) { return <Live {...props} />; }

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>BlueTubeTV Live</title>
+<style>
+  :root{--bg1:#0a0e27;--bg2:#101a3a;--ink:#eaf3ff;--brand:#1ea7ff}
+  body{margin:0;background:linear-gradient(120deg,var(--bg1),var(--bg2));color:var(--ink);
+       font-family:system-ui,Arial,sans-serif}
+  .wrap{max-width:1200px;margin:0 auto;padding:16px}
+  .toolbar{display:flex;gap:8px;justify-content:center;margin:8px 0 16px}
+  .btn{padding:8px 14px;border:1px solid #334;border-radius:999px;background:#0e1224;color:#fff;cursor:pointer}
+  .grid{display:grid;gap:12px;grid-template-columns:1fr 1fr}
+  @media (max-width:900px){.grid{grid-template-columns:1fr}}
+  .player{aspect-ratio:16/9;width:100%;border:0;background:#0b1020;border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+  .wide{grid-column:1/-1}
+  /* overlay iframe sits on top, allows clicks to pass through */
+  .overlayFrame{position:fixed;inset:0;border:0;pointer-events:none}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="toolbar">
+      <button class="btn" id="swap">Swap Views</button>
+    </div>
+
+    <div id="grid" class="grid">
+      <!-- A: Drone / Program -->
+      <iframe id="a" class="player wide"
+        src="https://customer-CUSTOMER_CODE.cloudflarestream.com/CF_INPUT_ID_A/iframe?poster=off&primaryColor=%231ea7ff"
+        allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" allowfullscreen>
+      </iframe>
+
+      <!-- B: Ground camera -->
+      <iframe id="b" class="player"
+        src="https://customer-CUSTOMER_CODE.cloudflarestream.com/CF_INPUT_ID_B/iframe?poster=off&primaryColor=%231ea7ff"
+        allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" allowfullscreen>
+      </iframe>
+    </div>
+  </div>
+
+  <!-- Optional: your overlay on top -->
+  <iframe class="overlayFrame" src="/overlay.html
+    ?title=International%20Overdose%20Awareness%20Day
+    &subtitle=Legion%20Stadium%20%E2%80%A2%20Wilmington%2C%20NC%20%E2%80%A2%201%E2%80%933%20PM
+    &tag=FREE%20EVENT
+    &ticker=FREE%20NARCAN|COMMUNITY%20RESOURCES|MEMORIAL%20VIGIL|LIVE%20MUSIC|QRT%20910-833-2052
+    &primary=%231ea7ff&accent=%237c3aed&auto=1">
+  </iframe>
+
+<script>
+  document.getElementById('swap').onclick=()=>{
+    document.getElementById('a').classList.toggle('wide');
+    document.getElementById('b').classList.toggle('wide');
+  };
+</script>
+</body>
+</html>
