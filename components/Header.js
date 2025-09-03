@@ -7,6 +7,8 @@ export default function Header() {
           <a href="/" className="btn" style={{background:'transparent', border:'1px solid rgba(255,255,255,.2)'}}>Home</a>
           <a href="/live" className="btn">Watch Live (WebRTC)</a>
           <a href="/live-hls" className="btn" style={{background:'#1d4ed8'}}>Backup (LL-HLS)</a>
+          <a href="/browse">Browse</a>
+          <a href="/pricing">Pricing</a>
         </nav>
       </div>
     </header>

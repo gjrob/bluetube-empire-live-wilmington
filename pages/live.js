@@ -7,7 +7,8 @@ import Offline from "../components/Offline";
 
 // ethers v6
 import { BrowserProvider, Contract, parseEther } from "ethers";
-
+import dynamic from "next/dynamic";
+const LiveMap = dynamic(() => import("../components/LiveMap"), { ssr: false });
 // ── ENV
 const TIPJAR_ADDR = process.env.NEXT_PUBLIC_TIPJAR_ADDRESS;
 const PAYOUT_ADDR = process.env.NEXT_PUBLIC_PAYOUT_ADDRESS;
@@ -298,6 +299,8 @@ export default function Live({ meta, angles, handle }) {
             {showChat ? <ChatPanel /> : null}
           </div>
         </div>
+              <LiveMap collapsed fabPos={{ right: 12, top: 88 }} />
+
 
         <SponsorTicker />
 
