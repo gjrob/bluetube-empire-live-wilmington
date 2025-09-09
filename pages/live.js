@@ -127,6 +127,81 @@ function SponsorTicker({
     </div>
   );
 }
+// ===== CAM A: SoundCloud (hard-wired) =====
+const SC_TRACK_ID = "943082998"; // <-- replace with the exact track id you want
+
+function CamA_SoundCloud() {
+  // use the exact embed URL shape SoundCloud gives you
+  const playerSrc =
+    "https://w.soundcloud.com/player/?" +
+    "url=https%3A//api.soundcloud.com/tracks/" + SC_TRACK_ID +
+    "&color=%23ff5500&auto_play=true&hide_related=false" +
+    "&show_comments=false&show_user=false&show_reposts=false" +
+    "&show_teaser=false&visual=true";
+
+  return (
+    <div style={{ position: "relative", paddingTop: "56.25%", borderRadius: 12, overflow: "hidden" }}>
+      <iframe
+        title="SoundCloud Player"
+        allow="autoplay"
+        frameBorder="0"
+        scrolling="no"
+        src={playerSrc}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }}
+      />
+    </div>
+  );
+}
+
+// ===== CAM B: HLS live video (reuse if you like) =====
+function CamB_Live({ hlsUrl, muted = true }) {
+  const videoRef = React.useRef(null);
+  const [ready, setReady] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!hlsUrl || !videoRef.current) return;
+    let hls, destroyed = false;
+
+    (async () => {
+      const { default: Hls } = await import("hls.js");
+      const video = videoRef.current;
+      const setOK = () => { if (!destroyed) { setReady(true); video.play().catch(()=>{}); } };
+
+      if (Hls.isSupported()) {
+        hls = new Hls({ lowLatencyMode: true, liveSyncDurationCount: 3, capLevelToPlayerSize: true, enableWorker: true });
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MEDIA_ATTACHED, () => hls.loadSource(hlsUrl));
+        hls.on(Hls.Events.MANIFEST_PARSED, setOK);
+        hls.on(Hls.Events.LEVEL_LOADED, setOK);
+      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        video.src = hlsUrl;
+        video.addEventListener("loadedmetadata", setOK, { once: true });
+      }
+    })();
+
+    return () => { destroyed = true; try { hls?.destroy(); } catch {} };
+  }, [hlsUrl]);
+
+  return (
+    <div style={{ position: "relative" }}>
+      <video
+        ref={videoRef}
+        controls
+        playsInline
+        preload="metadata"
+        poster="/offline-poster.png"
+        muted={muted}
+        style={{ width: "100%", aspectRatio: "16/9", background: "#000" }}
+      />
+      {!ready && (
+        <div style={{ position:"absolute", inset:0, display:"grid", placeItems:"center",
+                      color:"#aab4ff", background:"linear-gradient(180deg,#0b1338cc,#0b133800)" }}>
+          Connecting to live…
+        </div>
+      )}
+    </div>
+  );
+}
 
 /* ---------- Main page ---------- */
 export default function Live(props) {
@@ -393,41 +468,43 @@ export default function Live(props) {
 </a>
 
           {/* Grid: player + (optional chat) */}
-          <div className={`grid ${showChat ? "grid--chat" : "grid--nochat"}`}>
-            <section className="player-shell brand-ring card" aria-label="Live player">
-              {split ? (
-                <div className="grid2">
-                  <div className="player-shell brand-ring">
-                    <PlayerSection hlsUrl={ANGLES[0]?.url} label="Cam A" active muted={audioIdx !== 0} />
-                  </div>
-                  <div className="player-shell brand-ring">
-                    <PlayerSection hlsUrl={ANGLES[1]?.url} label="Cam B" active muted={audioIdx !== 1} />
-                  </div>
-                </div>
-              ) : (
-                <PlayerSection hlsUrl={activeUrl} label={ANGLES[idx]?.name || "Cam"} active muted={false} />
-              )}
-              {split && (
-                <div className="anglebar" style={{ marginTop: 6 }}>
-                  <span style={{ color: "#dbe7ff" }}>Audio:</span>
-                  <select
-                    className="angle"
-                    value={audioIdx}
-                    onChange={(e) => setAudioIdx(parseInt(e.target.value, 10))}
-                    title="Select Audio"
-                  >
-                    {ANGLES.map((a, i) => (
-                      <option key={i} value={i} disabled={!a.url}>
-                        {a.name} Audio
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </section>
+{/* Grid: player + (optional chat) */}
+<div className={`grid ${showChat ? "grid--chat" : "grid--nochat"}`}>
+  <section className="player-shell brand-ring card" aria-label="Live player">
+    {split ? (
+      <div className="grid2">
+        <div className="player-shell brand-ring">
+          {/* Cam A = SoundCloud */}
+          <CamA_SoundCloud />
+        </div>
+        <div className="player-shell brand-ring">
+          {/* Cam B = your HLS stream */}
+          <CamB_Live hlsUrl={ANGLES[1]?.url || activeUrl} muted={true} />
+        </div>
+      </div>
+    ) : (
+      // If you're not splitting, show whichever you want by default:
+      // Cam A only:
+      <CamA_SoundCloud />
+      // Or Cam B only:
+      // <CamB_Live hlsUrl={activeUrl} muted={false} />
+    )}
+
+    {split && (
+      <div className="anglebar" style={{ marginTop: 6 }}>
+        <span style={{ color: "#dbe7ff" }}>Audio:</span>
+        <select className="angle" value={audioIdx} onChange={(e)=>setAudioIdx(parseInt(e.target.value,10))} title="Select Audio">
+          {ANGLES.map((a,i)=>(
+            <option key={i} value={i} disabled={!a.url}>{a.name} Audio</option>
+          ))}
+        </select>
+      </div>
+    )}
+  </section>
+</div>
+
             {showChat ? <ChatPanel /> : null}
           </div>
-        </div>
 
         {/* ⬆ raise the Navigate/Sponsor floating button set by moving it higher */}
         <LiveMap collapsed fabPos={{ right: 12, top: 180 }} />
@@ -571,7 +648,7 @@ function PlayerSection({ hlsUrl, label, active = true, muted: mutedProp = false 
         // 🔁 YouTube fallback while offline (muted by default; user can unmute in player)
         <div style={{ position: "relative", paddingTop: "56.25%", borderRadius: 12, overflow: "hidden" }}>
           <iframe
-            src="https://www.youtube.com/embed/ehper8I7NsI?autoplay=1&mute=1&loop=1&playlist=ehper8I7NsI&controls=1&modestbranding=1&rel=0"
+            src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/123456789&color=%23ff5500&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true"
             title="Promo"
             allow="autoplay; encrypted-media"
             style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }}
