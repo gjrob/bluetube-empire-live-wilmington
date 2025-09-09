@@ -10,6 +10,8 @@ import { BrowserProvider, Contract, parseEther } from "ethers";
 import dynamic from "next/dynamic";
 const LiveMap = dynamic(() => import("../components/LiveMap"), { ssr: false });
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://live.bluetubetv.live";
+// show promo until this time, even if HLS is online (optional)
+const EVENT_START_MS = new Date("2025-10-24T19:30:00-04:00").getTime();  // adjust
 
 // ── ENV
 const TIPJAR_ADDR = process.env.NEXT_PUBLIC_TIPJAR_ADDRESS;
@@ -480,10 +482,12 @@ export default function Live(props) {
 }
 
 /* ---------- Video player ---------- */
-function PlayerSection({ hlsUrl, label, active = true, muted = false }) {
+function PlayerSection({ hlsUrl, label, active = true, muted: mutedProp = false }) {
   const videoRef = useRef(null);
   const [online, setOnline] = useState(false);
+  const [isMuted, setIsMuted] = useState(mutedProp); // ✅ state name differs from prop
 
+  // HLS setup
   useEffect(() => {
     if (!active || !hlsUrl) return;
     let hls;
@@ -491,14 +495,9 @@ function PlayerSection({ hlsUrl, label, active = true, muted = false }) {
     const video = videoRef.current;
     if (!video) return;
 
-    const boot = async () => {
+    (async () => {
       const { default: Hls } = await import("hls.js");
-      const markOnline = () => {
-        if (!destroyed) {
-          setOnline(true);
-          video.play().catch(() => {});
-        }
-      };
+      const markOnline = () => { if (!destroyed) { setOnline(true); video.play().catch(() => {}); } };
 
       if (Hls.isSupported()) {
         hls = new Hls({
@@ -509,19 +508,13 @@ function PlayerSection({ hlsUrl, label, active = true, muted = false }) {
           capLevelToPlayerSize: true,
           enableWorker: true,
         });
-
         hls.on(Hls.Events.ERROR, (_, data) => {
           if (data?.fatal) {
-            if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-              try { hls.startLoad(); } catch {}
-            } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-              try { hls.recoverMediaError(); } catch {}
-            } else {
-              setOnline(false);
-            }
+            if (data.type === Hls.ErrorTypes.NETWORK_ERROR) { try { hls.startLoad(); } catch {} }
+            else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) { try { hls.recoverMediaError(); } catch {} }
+            else { setOnline(false); }
           }
         });
-
         hls.attachMedia(video);
         hls.on(Hls.Events.MEDIA_ATTACHED, () => hls.loadSource(hlsUrl));
         hls.on(Hls.Events.MANIFEST_PARSED, markOnline);
@@ -530,48 +523,74 @@ function PlayerSection({ hlsUrl, label, active = true, muted = false }) {
         video.src = hlsUrl;
         video.addEventListener("loadedmetadata", () => markOnline(), { once: true });
       }
-    };
+    })();
 
-    boot();
-    return () => {
-      destroyed = true;
-      try { if (hls) hls.destroy(); } catch {}
-      setOnline(false);
-    };
+    return () => { destroyed = true; try { hls?.destroy(); } catch {} setOnline(false); };
   }, [hlsUrl, active]);
 
+  // keep DOM <video> muted property in sync
   useEffect(() => {
-    if (videoRef.current) videoRef.current.muted = !!muted;
-  }, [muted]);
+    if (videoRef.current) videoRef.current.muted = !!isMuted;
+  }, [isMuted]);
 
   return (
     <div style={{ position: "relative" }}>
       <span
         style={{
-          position: "absolute",
-          left: 12,
-          top: 10,
-          zIndex: 2,
-          padding: "4px 8px",
-          borderRadius: 999,
-          fontWeight: 800,
-          background: "#e6f6ff",
-          color: "#082b5c",
-          border: "1px solid rgba(79,156,255,.45)",
+          position: "absolute", left: 12, top: 10, zIndex: 2,
+          padding: "4px 8px", borderRadius: 999, fontWeight: 800,
+          background: "#e6f6ff", color: "#082b5c",
+          border: "1px solid rgba(79,156,255,.45)"
         }}
       >
         {label}
       </span>
-      <video
-        ref={videoRef}
-        controls
-        playsInline
-        preload="metadata"
-        poster="/offline-poster.png"
-        muted={muted}
-        style={{ width: "100%", aspectRatio: "16/9", background: "#000" }}
-      />
-      {!online && <Offline variant="badge" />}
+
+      {/* Live when online; else promo loop */}
+      {online ? (
+        <div style={{ position: "relative" }}>
+          <video
+            ref={videoRef}
+            controls
+            playsInline
+            preload="metadata"
+            poster="/offline-poster.png"
+            muted={isMuted}
+            style={{ width: "100%", aspectRatio: "16/9", background: "#000" }}
+          />
+          {/* Toggle button for live player too (optional) */}
+          <button
+            onClick={() => setIsMuted(m => !m)}
+            style={btnStyle}
+            title={isMuted ? "Unmute" : "Mute"}
+          >
+            {isMuted ? "🔇 Unmute" : "🔊 Mute"}
+          </button>
+        </div>
+      ) : (
+        // 🔁 YouTube fallback while offline (muted by default; user can unmute in player)
+        <div style={{ position: "relative", paddingTop: "56.25%", borderRadius: 12, overflow: "hidden" }}>
+          <iframe
+            src="https://www.youtube.com/embed/ehper8I7NsI?autoplay=1&mute=1&loop=1&playlist=ehper8I7NsI&controls=1&modestbranding=1&rel=0"
+            title="Promo"
+            allow="autoplay; encrypted-media"
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }}
+          />
+        </div>
+      )}
     </div>
   );
 }
+
+const btnStyle = {
+  position: "absolute",
+  bottom: 12,
+  right: 12,
+  padding: "6px 10px",
+  borderRadius: 8,
+  border: "none",
+  background: "rgba(0,0,0,.6)",
+  color: "#fff",
+  fontWeight: 700,
+  cursor: "pointer",
+};

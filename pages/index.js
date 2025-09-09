@@ -8,6 +8,7 @@ import Image from "next/image";
 export default function Home() {
   return (
     <>
+      <HeroYB href="/yb-raleigh" />
       <Head>
         <title>BlueTubeTV • Wilmington Live</title>
         <meta name="description" content="Stream, mint, and monetize — one signal, many revenue tides." />
