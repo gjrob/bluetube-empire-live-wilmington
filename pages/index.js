@@ -1,28 +1,33 @@
 // pages/index.js
 import Head from "next/head";
+import { useEffect, useState } from "react";
 import BrandTheme from "../components/BrandTheme";
 import BrandLockup from "../components/BrandLockup";
 import HeroYB from "../components/HeroYB";
-import Image from "next/image";
 
 export default function Home() {
+  const [pins, setPins] = useState([]);
+
+  // ✅ Frontend fetches JSON from your Cloud Run API
+  useEffect(() => {
+    fetch("https://pins-api-61367961265.us-central1.run.app/manifest?campaign=showcase")
+      .then((res) => res.json())
+      .then((data) => setPins(data.slots || []))
+      .catch((err) => console.error("Failed to load pins:", err));
+  }, []);
+
+  // ✅ The return is just JSX to render your page
   return (
     <>
-      <HeroYB href="/yb-raleigh" />
       <Head>
         <title>BlueTubeTV • Wilmington Live</title>
         <meta name="description" content="Stream, mint, and monetize — one signal, many revenue tides." />
         <meta property="og:title" content="BlueTubeTV Empire" />
         <meta property="og:image" content="/og-live.jpg" />
- 
-        <meta name="description" content="Live from Wilmington. Tips keep the cameras rolling." />
       </Head>
-       <HeroYB
-        date="Oct 24"
-        venue="Lenovo Center"
-        city="Raleigh, NC"
-        href="/yb-raleigh"
-      />
+
+      <HeroYB date="Oct 24" venue="Lenovo Center" city="Raleigh, NC" href="/yb-raleigh" />
+
       <BrandTheme>
         <main style={{ maxWidth: 1100, margin: "0 auto", padding: "64px 16px 48px" }}>
           <section style={{ textAlign: "center", padding: "48px 16px" }}>
@@ -38,36 +43,34 @@ export default function Home() {
             </div>
           </section>
 
-          {/* Optional: three quick value cards */}
-          <section style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))" }}>
-            <div className="card">
-              <h3 style={{ marginTop: 0 }}>Tip-powered</h3>
-              <p style={{ color: "var(--muted)" }}>Stripe + Crypto tips keep the cameras rolling.</p>
-            </div>
-            <div className="card">
-              <h3 style={{ marginTop: 0 }}>Mint the Moment</h3>
-              <p style={{ color: "var(--muted)" }}>Freeze iconic seconds into on-chain collectibles.</p>
-            </div>
-            <div className="card">
-              <h3 style={{ marginTop: 0 }}>Sponsor Slots</h3>
-              <p style={{ color: "var(--muted)" }}>Claim a spotlight segment during live shows.</p>
-            </div>
+          {/* Example: show pins fetched from API */}
+          <section style={{ marginTop: 24 }}>
+            <h3 style={{ marginBottom: 8 }}>Featured Pins</h3>
+            <ul>
+              {pins.map((p) => (
+                <li key={p.pin}>
+                  <strong style={{ color: p.color }}>{p.label}</strong> —{" "}
+                  <a href={p.url} target="_blank" rel="noreferrer">{p.primary_text}</a>
+                </li>
+              ))}
+            </ul>
           </section>
-          <section style={{padding:"16px", display:"grid", placeItems:"center"}}>
-  <a href="/yb-raleigh" style={{textDecoration:"none"}}>
-    <img
-      src="/og-yb-large.png"
-      alt="NBA YoungBoy — Raleigh • Oct 24"
-      style={{ width:"100%", maxWidth:960, height:"auto",
-               borderRadius:16, border:"1px solid #1f2937",
-               boxShadow:"0 12px 32px rgba(0,0,0,.35)" }}
-    />
-  </a>
-</section>
 
+          <section style={{ padding: "16px", display: "grid", placeItems: "center" }}>
+            <a href="/yb-raleigh" style={{ textDecoration: "none" }}>
+              <img
+                src="/og-yb-large.png"
+                alt="NBA YoungBoy — Raleigh • Oct 24"
+                style={{
+                  width: "100%", maxWidth: 960, height: "auto",
+                  borderRadius: 16, border: "1px solid #1f2937",
+                  boxShadow: "0 12px 32px rgba(0,0,0,.35)"
+                }}
+              />
+            </a>
+          </section>
         </main>
 
-        {/* Page-scoped styles only */}
         <style jsx>{`
           .btn {
             border: none;
@@ -99,3 +102,4 @@ export default function Home() {
     </>
   );
 }
+// Note: this file uses React hooks (useState, useEffect) to fetch and display data from the Cloud Run API

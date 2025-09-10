@@ -155,7 +155,7 @@ function CamA_SoundCloud() {
 
 // ===== CAM B: HLS live video (reuse if you like) =====
 function CamB_Live({ hlsUrl, muted = true }) {
-  const videoRef = React.useRef(null);
+   const videoRef = useRef(null);
   const [ready, setReady] = React.useState(false);
 
   React.useEffect(() => {
