@@ -140,23 +140,17 @@ export default function LiveMap({
 
     (async () => {
       if (!elRef.current || mapRef.current) return;
+      // 🧹 sometimes the container keeps a stale Leaflet id (StrictMode / HMR)
+      if (elRef.current && elRef.current._leaflet_id) {
+        try { delete elRef.current._leaflet_id; } catch {}
+      }
 
+      // Import leaflet before using L
       const leaf = await import("leaflet");
       await import("leaflet.markercluster");
       L = leaf.default || leaf;
 
-      // marker icons
-      const iconUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png";
-      const iconRetinaUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png";
-      const shadowUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png";
-      const DefaultIcon = L.icon({
-        iconUrl, iconRetinaUrl, shadowUrl,
-        iconSize: [25,41], iconAnchor: [12,41],
-        popupAnchor: [1,-34], shadowSize: [41,41],
-      });
-      L.Marker.prototype.options.icon = DefaultIcon;
-
-      // map
+      // now safe to create:
       const map = L.map(elRef.current, {
         center: [34.2257, -77.9447],
         zoom: 12,
@@ -168,6 +162,16 @@ export default function LiveMap({
       });
       mapRef.current = map;
 
+      // marker icons
+      const iconUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png";
+      const iconRetinaUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png";
+      const shadowUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png";
+      const DefaultIcon = L.icon({
+        iconUrl, iconRetinaUrl, shadowUrl,
+        iconSize: [25,41], iconAnchor: [12,41],
+        popupAnchor: [1,-34], shadowSize: [41,41],
+      });
+      L.Marker.prototype.options.icon = DefaultIcon;
       // base layers
       const dayTiles = L.tileLayer(
         "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -230,16 +234,31 @@ export default function LiveMap({
       const bounds = L.latLngBounds([]);
       pts.forEach((pt) => {
         const m = L.marker([pt.lat, pt.lng]);
-        const phoneBtn = pt.phone ? `<a href="tel:${pt.phone.replace(/[^0-9+]/g, "")}" class="lm-btn">Call</a>` : "";
-        const webBtn   = pt.url   ? `<a href="${pt.url}" target="_blank" rel="noreferrer" class="lm-btn">Website</a>` : "";
-        const dirBtn   = `<a href="https://www.google.com/maps/dir/?api=1&destination=${pt.lat},${pt.lng}&travelmode=driving" target="_blank" rel="noreferrer" class="lm-btn lm-primary">Directions ↗</a>`;
+       // Primary "Open" goes to sponsor URL if present; else Google search for the place
+const openHref = pt.url && /^https?:\/\//i.test(pt.url)
+  ? pt.url
+  : `https://www.google.com/search?q=${encodeURIComponent(`${pt.name} ${pt.address || ""}`)}`;
+
+const openBtn = `<a href="${openHref}" target="_blank" rel="noreferrer" class="lm-btn lm-primary">Open ↗</a>`;
+const dirBtn  = `<a href="${mapsHref(pt.lat, pt.lng, pt.name)}" target="_blank" rel="noreferrer" class="lm-btn">Directions</a>`;
+const phoneBtn= pt.phone ? `<a href="tel:${pt.phone.replace(/[^0-9+]/g,'')}" class="lm-btn">Call</a>` : "";
         m.bindPopup(`
-          <div class="lm-pop">
-            <div class="lm-title">${escapeHtml(pt.name)}</div>
-            ${pt.address ? `<div class="lm-sub">${escapeHtml(pt.address)}</div>` : ""}
-            <div class="lm-row">${dirBtn}${phoneBtn}${webBtn}</div>
-          </div>
-        `);
+  <div class="lm-pop">
+    <div class="lm-head">
+      ${pt.icon ? `<img src="${pt.icon.startsWith('http') ? pt.icon : '/icons/'+pt.icon}" alt="${escapeHtml(pt.name)}" />` : ""}
+      <div>
+        <div class="lm-title">${escapeHtml(pt.name)}</div>
+        ${pt.address ? `<div class="lm-sub">${escapeHtml(pt.address)}</div>` : ""}
+      </div>
+    </div>
+    ${pt.deal ? `<div class="lm-deal">⭐ ${escapeHtml(pt.deal)}</div>` : ""}
+    <div class="lm-row">
+      ${openBtn}
+      ${dirBtn}
+      ${phoneBtn}
+    </div>
+  </div>
+`);
         cluster.addLayer(m);
         bounds.extend([pt.lat, pt.lng]);
       });

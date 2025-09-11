@@ -8,7 +8,7 @@ import BrandLockup from "../components/BrandLockup";
 import Offline from "../components/Offline";
 import CountdownChip from "../components/CountdownChip";
 import { BrowserProvider, Contract, parseEther } from "ethers";
-
+import CheckoutButton from "../components/CheckoutButton";
 
 const SITE_URL   = process.env.NEXT_PUBLIC_SITE_URL || "https://live.bluetubetv.live";
 const TIPJAR_ADDR = process.env.NEXT_PUBLIC_TIPJAR_ADDRESS;
@@ -169,8 +169,10 @@ function ChatPanel() {
 function SponsorTicker({
   items = [
     { badge: "SPONSOR", text: "Live Oak Bank • Local Business Heroes" },
-    { badge: "SPECIAL", text: "Harris Teeter • Weekend Specials" },
-    { badge: "LOCAL",   text: "Sip And Chill" },
+    { badge: "SPECIAL", text: "Creator Print House • Custom Merchandise" },
+    { badge: "HOT",     text: "Sweet D's Cuisine • HOMEMADE SWEETS" },
+    { badge: "Cigars",   text: "Sip And Chill" },
+    { badge: "SUPPORT", text: "On Tyme Restaurant • Restaurant" },
   ],
 }) {
   return (
@@ -594,6 +596,7 @@ export default function Live(props) {
             <button className="angle" onClick={() => handleEthTip("0.002")} disabled={!ready}>ETH Tip</button>
             <button className="angle" onClick={handleMintMoment} disabled={!ready}>Mint</button>
             <MapButton campaign="showcase" newTab />
+            <a href="/sponsor" className="angle">Sponsor</a>
             <ShareButton />
             <CopyLink />
           </header>
