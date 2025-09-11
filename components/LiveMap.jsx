@@ -173,12 +173,19 @@ export default function LiveMap({
         "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
         { attribution: "&copy; OpenStreetMap" }
       );
-      const nightTiles = L.tileLayer(
-        "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png",
-        { attribution: "&copy; Stadia Maps, &copy; OpenMapTiles, &copy; OpenStreetMap contributors" }
-      );
-      dayTiles.addTo(map);
+    const STADIA_KEY = "a70f4769-2148-4dea-a352-a6d62433558f";
+     const nightTiles = L.tileLayer(
+   "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+   `https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png?api_key=${STADIA_KEY}`,
 
+   {
+     attribution: "&copy; Stadia Maps, OpenMapTiles, OpenStreetMap contributors &copy; CARTO",
+     subdomains: "abcd",
+     maxZoom: 20
+   }
+ );
+      dayTiles.addTo(map);
+ 
       const updateBaseByTime = () => {
         const m = mapRef.current;
         if (!m) return;
@@ -193,7 +200,17 @@ export default function LiveMap({
           if (!m.hasLayer(dayTiles)) dayTiles.addTo(m);
         }
       };
-
+      nightTiles.on('tileerror', () => {
+  const m = mapRef.current;
+  if (!m) return;
+  // fall back to a free dark layer
+  const cartoDark = L.tileLayer(
+    "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    { attribution: "© OSM contributors, © CARTO", subdomains: "abcd", maxZoom: 20 }
+  );
+  if (m.hasLayer(nightTiles)) m.removeLayer(nightTiles);
+  cartoDark.addTo(m);
+});
       // clusters + markers
       const cluster = L.markerClusterGroup({
         chunkedLoading: true,
