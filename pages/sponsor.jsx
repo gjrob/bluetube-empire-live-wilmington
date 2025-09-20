@@ -11,7 +11,11 @@ export default function SponsorPage() {
   const [selectedId, setSelectedId] = useState("general");
   const [campaign, setCampaign] = useState("showcase");
   const [error, setError] = useState("");
-
+    const PLANS = [
+  { id:"standard", title:"Standard", price:"$299", blurb:"Map pin + bottom ticker mention" },
+  { id:"premium",  title:"Premium",  price:"$599", blurb:"Bigger placement + popup ‘Open’ button", highlight:true },
+  { id:"marquee",  title:"Marquee",  price:"$999", blurb:"Top position + shout on stream" },
+];
   // one place for fetch/override
   useEffect(() => {
     const search = new URLSearchParams(window.location.search);
@@ -95,30 +99,21 @@ export default function SponsorPage() {
         </section>
 
         {/* tiers */}
-        <section className="grid">
-          <PlanCard
-            title="Standard"
-            price="$299"
-            blurb="Map pin + bottom ticker mention"
-            cta="Sponsor $299"
-            onBuy={() => startCheckout({ tier: "standard" })}
-          />
-          <PlanCard
-            title="Premium"
-            price="$599"
-            blurb="Bigger placement + popup ‘Open’ button"
-            highlight
-            cta="Sponsor $599"
-            onBuy={() => startCheckout({ tier: "premium" })}
-          />
-          <PlanCard
-            title="Marquee"
-            price="$999"
-            blurb="Top position + shout on stream"
-            cta="Sponsor $999"
-            onBuy={() => startCheckout({ tier: "marquee" })}
-          />
-        </section>
+<section className="grid">
+  {PLANS.map(p => (
+    <PlanCard
+      key={p.id}
+      title={p.title}        // <- stays the same SSR/CSR
+      price={p.price}
+      blurb={p.blurb}
+      highlight={p.highlight}
+      cta={`Sponsor ${p.price}`}
+      onBuy={() => startCheckout({ tier: p.id })}   // keeps your current one-time flow
+      btnVariant={p.id === "premium" ? "primary" : "outline"}
+    />
+  ))}
+</section>
+
 
         {/* custom amount */}
         <section className="custom card">

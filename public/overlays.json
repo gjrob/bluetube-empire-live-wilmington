@@ -1,0 +1,6 @@
+[
+  { "id": "adkt-top", "src": "/overlays/adkt-drip-top.svg", "slot": "custom", "weight": 1 },
+  { "id": "founder-empire", "src": "/overlays/founder-empire.png", "slot": "corner", "weight": 1 },
+  { "id": "founder-champion", "src": "/overlays/founder-champion.svg", "slot": "corner", "weight": 1 },
+  { "id": "test", "src": "/overlays/test-overlay.png", "slot": "lower-third", "weight": 1 }
+]

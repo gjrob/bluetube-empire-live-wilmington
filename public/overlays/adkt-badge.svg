@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 90" width="260" height="90">
+  <rect x="0.5" y="0.5" width="259" height="89" rx="16"
+        fill="rgba(7,19,46,0.85)" stroke="rgba(111,227,255,0.35)"/>
+  <text x="20" y="58" font-size="44" font-weight="900"
+        font-family="Inter, system-ui, Arial" fill="#dbe7ff" letter-spacing="2">ADKT</text>
+  <circle cx="218" cy="45" r="18" fill="#6fe3ff"/>
+  <circle cx="218" cy="45" r="9" fill="#0b1338"/>
+</svg>

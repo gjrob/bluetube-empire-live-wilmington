@@ -1,6 +1,12 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import SunCalc from "suncalc";
+import L from "leaflet";
+
+
+
+
+
 
 /* ---------- helpers ---------- */
 function isNightAt(lat, lng, d = new Date()) {
@@ -55,265 +61,213 @@ function coerceLatLng(p) {
 
 /* ---------- component ---------- */
 export default function LiveMap({
+  pts = [],
   pins = [],
-  collapsed = false,
+  mode = "overlay",
   fabPos = { right: 12, top: 180 },
-  mode = "overlay", // "overlay" | "fullscreen"
+  isCollapsed = false,
+  toggleMap = () => {},
+  handleCenter = () => {},
 }) {
-  const mapRef = useRef(null);
   const elRef = useRef(null);
-
-  const [isCollapsed, setIsCollapsed] = useState(!!collapsed);
-  const [wx, setWx] = useState({ temp: null, wind: null, code: null });
+  const mapRef = useRef(null);
   const [night, setNight] = useState(false);
-
-  // normalize pins
-  const pts = useMemo(() => {
-    return (pins || [])
-      .map((p) => {
-        const pair = coerceLatLng(p);
-        if (!pair) return null;
-        return {
-          id: p.id || `${pair.lat},${pair.lng}`,
-          name: p.name || p.title || "Location",
-          address: p.address || "",
-          lat: pair.lat,
-          lng: pair.lng,
-          phone: p.phone || p.tel || "",
-          url: p.url || p.link || "",
-        };
-      })
-      .filter(Boolean);
-  }, [pins]);
-
-  // open (if hidden), resize, and center
-  const handleCenter = useCallback(() => {
-    const m = mapRef.current;
-    if (!m) return;
-
-    if (isCollapsed) setIsCollapsed(false);
-
-    const centerNow = () => {
-      m.invalidateSize();
-      if (pts.length) {
-        let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
-        for (const p of pts) {
-          if (p.lat < minLat) minLat = p.lat;
-          if (p.lat > maxLat) maxLat = p.lat;
-          if (p.lng < minLng) minLng = p.lng;
-          if (p.lng > maxLng) maxLng = p.lng;
-        }
-        m.fitBounds([[minLat, minLng], [maxLat, maxLng]], { animate: true, maxZoom: 16 });
-      } else {
-        m.setView([34.2257, -77.9447], 12, { animate: true });
-      }
-    };
-
-    requestAnimationFrame(() => requestAnimationFrame(centerNow));
-  }, [pts, isCollapsed]);
-
-  // show/hide shell and resize when opening
-  const toggleMap = useCallback(() => {
-    setIsCollapsed(prev => {
-      const next = !prev;
-      if (!next) {
-        const m = mapRef.current;
-        if (m) requestAnimationFrame(() =>
-          requestAnimationFrame(() => m.invalidateSize())
-        );
-      }
-      return next;
-    });
-  }, []);
-
+  const [wx, setWx] = useState({});
+  
   // layout style for overlay vs fullscreen
-  const shellStyle =
-    mode === "fullscreen"
-      ? { position: "fixed", left: 0, right: 0, top: 56, bottom: 0, width: "auto", height: "auto", borderRadius: 0, zIndex: 60 }
-      : { position: "fixed", left: 12, bottom: 148, width: "min(560px, 92vw)", height: 320, zIndex: 60, borderRadius: 16 };
+  const isFull = mode === "fullscreen";
+  const shellStyle = {
+    position: "fixed",
+    left: isFull ? 0 : 12,
+    right: isFull ? 0 : undefined,
+    top: isFull ? 56 : undefined,     // leave room for a top bar on /map
+    bottom: isFull ? 0 : 176,         // clears your tip buttons
+    width: isFull ? "auto" : "min(560px, 92vw)",
+    height: isCollapsed ? 0 : (isFull ? "auto" : 320),  // 🔑 collapses when hidden
+    borderRadius: isFull ? 0 : 16,
+    zIndex: 60,
+    overflow: "hidden",
+    // make it non-blocking when hidden
+    pointerEvents: isCollapsed ? "none" : "auto",
+    // pretty when visible; invisible when hidden
+    border: isCollapsed ? 0 : "1px solid rgba(111,227,255,.25)",
+    boxShadow: isCollapsed ? "none" : "0 12px 40px rgba(0,0,0,.35)",
+    background: isCollapsed
+      ? "transparent"
+      : "radial-gradient(800px 400px at 20% 80%, rgba(111,227,255,.08), transparent 60%), rgba(7,19,46,.85)",
+    backdropFilter: isCollapsed ? "none" : "blur(8px)",
+    transition: "height .18s ease",
+  };
 
-  /* ---------- map effect ---------- */
-  useEffect(() => {
-    let L;
-    let wxTimer = null;
-    let timeTimer = null;
+useEffect(() => {
+  let L;
+  let wxTimer = null;
+  let timeTimer = null;
 
-    (async () => {
-      if (!elRef.current || mapRef.current) return;
-      // 🧹 sometimes the container keeps a stale Leaflet id (StrictMode / HMR)
-      if (elRef.current && elRef.current._leaflet_id) {
-        try { delete elRef.current._leaflet_id; } catch {}
-      }
+  (async () => {
+    if (!elRef.current || mapRef.current) return;
 
-      // Import leaflet before using L
-      const leaf = await import("leaflet");
-      await import("leaflet.markercluster");
-      L = leaf.default || leaf;
+    // stale Leaflet id (StrictMode/HMR) cleanup
+    if (elRef.current && elRef.current._leaflet_id) {
+      try { delete elRef.current._leaflet_id; } catch {}
+    }
 
-      // now safe to create:
-      const map = L.map(elRef.current, {
-        center: [34.2257, -77.9447],
-        zoom: 12,
-        minZoom: 3,
-        maxZoom: 19,
-        scrollWheelZoom: false,
-        wheelDebounceTime: 400,
-        worldCopyJump: true,
+    // Import Leaflet + clusters
+    const leaf = await import("leaflet");
+    await import("leaflet.markercluster");
+    L = leaf.default || leaf;
+
+    // Map
+    const map = L.map(elRef.current, {
+      center: [34.2257, -77.9447],
+      zoom: 12,
+      minZoom: 3,
+      maxZoom: 19,
+      scrollWheelZoom: false,
+      wheelDebounceTime: 400,
+      worldCopyJump: true,
+    });
+    mapRef.current = map;
+
+    // click → log coords
+    map.on("click", (e) => {
+      console.log("[coords]", e.latlng.lat.toFixed(6), e.latlng.lng.toFixed(6));
+    });
+
+    // Center me button
+    const CenterBtn = L.control({ position: "topleft" });
+    CenterBtn.onAdd = () => {
+      const btn = L.DomUtil.create("button", "angle");
+      btn.textContent = "Center me";
+      btn.style.margin = "8px";
+      L.DomEvent.on(btn, "click", () => {
+        if (!navigator.geolocation) return alert("Geolocation is off");
+        navigator.geolocation.getCurrentPosition(pos => {
+          map.setView([pos.coords.latitude, pos.coords.longitude], 15, { animate: true });
+        });
       });
-      mapRef.current = map;
-
-      // marker icons
-      const iconUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png";
-      const iconRetinaUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png";
-      const shadowUrl = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png";
-      const DefaultIcon = L.icon({
-        iconUrl, iconRetinaUrl, shadowUrl,
-        iconSize: [25,41], iconAnchor: [12,41],
-        popupAnchor: [1,-34], shadowSize: [41,41],
-      });
-      L.Marker.prototype.options.icon = DefaultIcon;
-      // base layers
-      const dayTiles = L.tileLayer(
-        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        { attribution: "&copy; OpenStreetMap" }
-      );
-    const STADIA_KEY = "a70f4769-2148-4dea-a352-a6d62433558f";
-     const nightTiles = L.tileLayer(
-   "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-   `https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png?api_key=${STADIA_KEY}`,
-
-   {
-     attribution: "&copy; Stadia Maps, OpenMapTiles, OpenStreetMap contributors &copy; CARTO",
-     subdomains: "abcd",
-     maxZoom: 20
-   }
- );
-      dayTiles.addTo(map);
- 
-      const updateBaseByTime = () => {
-        const m = mapRef.current;
-        if (!m) return;
-        const c = m.getCenter();
-        const n = isNightAt(c.lat, c.lng);
-        setNight(n);
-        if (n) {
-          if (m.hasLayer(dayTiles)) m.removeLayer(dayTiles);
-          if (!m.hasLayer(nightTiles)) nightTiles.addTo(m);
-        } else {
-          if (m.hasLayer(nightTiles)) m.removeLayer(nightTiles);
-          if (!m.hasLayer(dayTiles)) dayTiles.addTo(m);
-        }
-      };
-      nightTiles.on('tileerror', () => {
-  const m = mapRef.current;
-  if (!m) return;
-  // fall back to a free dark layer
-  const cartoDark = L.tileLayer(
-    "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-    { attribution: "© OSM contributors, © CARTO", subdomains: "abcd", maxZoom: 20 }
-  );
-  if (m.hasLayer(nightTiles)) m.removeLayer(nightTiles);
-  cartoDark.addTo(m);
-});
-      // clusters + markers
-      const cluster = L.markerClusterGroup({
-        chunkedLoading: true,
-        showCoverageOnHover: false,
-        maxClusterRadius: 60,
-        zoomToBoundsOnClick: true,
-        spiderfyOnEveryZoom: false,
-        iconCreateFunction: (c) =>
-          L.divIcon({
-            html: `<div class="mc-bubble"><span>${c.getChildCount()}</span></div>`,
-            className: "mc-none",
-            iconSize: [46, 46],
-          }),
-      });
-      map.addLayer(cluster);
-
-      const bounds = L.latLngBounds([]);
-      pts.forEach((pt) => {
-        const m = L.marker([pt.lat, pt.lng]);
-       // Primary "Open" goes to sponsor URL if present; else Google search for the place
-const openHref = pt.url && /^https?:\/\//i.test(pt.url)
-  ? pt.url
-  : `https://www.google.com/search?q=${encodeURIComponent(`${pt.name} ${pt.address || ""}`)}`;
-
-const openBtn = `<a href="${openHref}" target="_blank" rel="noreferrer" class="lm-btn lm-primary">Open ↗</a>`;
-const dirBtn  = `<a href="${mapsHref(pt.lat, pt.lng, pt.name)}" target="_blank" rel="noreferrer" class="lm-btn">Directions</a>`;
-const phoneBtn= pt.phone ? `<a href="tel:${pt.phone.replace(/[^0-9+]/g,'')}" class="lm-btn">Call</a>` : "";
-        m.bindPopup(`
-  <div class="lm-pop">
-    <div class="lm-head">
-      ${pt.icon ? `<img src="${pt.icon.startsWith('http') ? pt.icon : '/icons/'+pt.icon}" alt="${escapeHtml(pt.name)}" />` : ""}
-      <div>
-        <div class="lm-title">${escapeHtml(pt.name)}</div>
-        ${pt.address ? `<div class="lm-sub">${escapeHtml(pt.address)}</div>` : ""}
-      </div>
-    </div>
-    ${pt.deal ? `<div class="lm-deal">⭐ ${escapeHtml(pt.deal)}</div>` : ""}
-    <div class="lm-row">
-      ${openBtn}
-      ${dirBtn}
-      ${phoneBtn}
-    </div>
-  </div>
-`);
-        cluster.addLayer(m);
-        bounds.extend([pt.lat, pt.lng]);
-      });
-      if (pts.length) map.fitBounds(bounds.pad(0.2), { animate: true, maxZoom: 16 });
-
-      // weather
-      const updateWeather = async () => {
-        const m = mapRef.current;
-        if (!m) return;
-        const c = m.getCenter();
-        const w = await getWeather(c.lat, c.lng).catch(() => null);
-        if (w) setWx(w);
-      };
-
-      updateBaseByTime();
-      updateWeather();
-
-      map.on("click", () => map.scrollWheelZoom.enable());
-      map.on("moveend", updateBaseByTime);
-      map.on("moveend", updateWeather);
-
-      timeTimer = setInterval(updateBaseByTime, 10 * 60 * 1000);
-      wxTimer   = setInterval(updateWeather,   5 * 60 * 1000);
-    })();
-    // choose layout based on mode + collapsed state
-const isFull = mode === "fullscreen";
-const shellStyle = {
-  position: "fixed",
-  left: isFull ? 0 : 12,
-  right: isFull ? 0 : undefined,
-  top: isFull ? 56 : undefined,     // leave room for a top bar on /map
-  bottom: isFull ? 0 : 176,         // clears your tip buttons
-  width: isFull ? "auto" : "min(560px, 92vw)",
-  height: isCollapsed ? 0 : (isFull ? "auto" : 320),  // 🔑 collapses when hidden
-  borderRadius: isFull ? 0 : 16,
-  zIndex: 60,
-  overflow: "hidden",
-  // make it non-blocking when hidden
-  pointerEvents: isCollapsed ? "none" : "auto",
-  // pretty when visible; invisible when hidden
-  border: isCollapsed ? 0 : "1px solid rgba(111,227,255,.25)",
-  boxShadow: isCollapsed ? "none" : "0 12px 40px rgba(0,0,0,.35)",
-  background: isCollapsed
-    ? "transparent"
-    : "radial-gradient(800px 400px at 20% 80%, rgba(111,227,255,.08), transparent 60%), rgba(7,19,46,.85)",
-  backdropFilter: isCollapsed ? "none" : "blur(8px)",
-  transition: "height .18s ease",
-};
-
-    return () => {
-      try { if (mapRef.current) mapRef.current.remove(); } catch {}
-      mapRef.current = null;
-      try { /* timers may be null the first render */ } finally {}
+      return btn;
     };
-  }, [pts]);
+    CenterBtn.addTo(map);
+
+    // default icon
+    const DefaultIcon = L.icon({
+      iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+      iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+      shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+      iconSize: [25,41], iconAnchor: [12,41],
+      popupAnchor: [1,-34], shadowSize: [41,41],
+    });
+    L.Marker.prototype.options.icon = DefaultIcon;
+
+    // base layers
+    const dayTiles = L.tileLayer(
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      { attribution: "© OpenStreetMap" }
+    );
+
+    const STADIA_KEY = "a70f4769-2148-4dea-a352-a6d62433558f";
+    const nightTiles = L.tileLayer(
+      `https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png?api_key=${STADIA_KEY}`,
+      { attribution: "© Stadia Maps, © OpenMapTiles, © OpenStreetMap", maxZoom: 20 }
+    );
+
+    dayTiles.addTo(map);
+
+    const updateBaseByTime = () => {
+      const m = mapRef.current; if (!m) return;
+      const c = m.getCenter();
+      const n = isNightAt(c.lat, c.lng);
+      setNight(n);
+      if (n) {
+        if (m.hasLayer(dayTiles)) m.removeLayer(dayTiles);
+        if (!m.hasLayer(nightTiles)) nightTiles.addTo(m);
+      } else {
+        if (m.hasLayer(nightTiles)) m.removeLayer(nightTiles);
+        if (!m.hasLayer(dayTiles)) dayTiles.addTo(m);
+      }
+    };
+
+    nightTiles.on("tileerror", () => {
+      const m = mapRef.current; if (!m) return;
+      const fallback = L.tileLayer(
+        "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+        { attribution: "© OSM contributors, © CARTO", subdomains: "abcd", maxZoom: 20 }
+      );
+      if (m.hasLayer(nightTiles)) m.removeLayer(nightTiles);
+      fallback.addTo(m);
+    });
+
+    // clusters + markers
+    const cluster = L.markerClusterGroup({
+      chunkedLoading: true,
+      showCoverageOnHover: false,
+      maxClusterRadius: 60,
+      zoomToBoundsOnClick: true,
+      spiderfyOnEveryZoom: false,
+      iconCreateFunction: (c) =>
+        L.divIcon({
+          html: `<div class="mc-bubble"><span>${c.getChildCount()}</span></div>`,
+          className: "mc-none",
+          iconSize: [46, 46],
+        }),
+    });
+    map.addLayer(cluster);
+
+    const bounds = L.latLngBounds([]);
+
+    // 🔑 use your pts array only (removed stray pins.forEach)
+    pts.forEach((pt) => {
+      const mkr = L.marker([pt.lat, pt.lng]);
+      bounds.extend([pt.lat, pt.lng]);
+
+      const openHref = pt.url && /^https?:\/\//i.test(pt.url)
+        ? pt.url
+        : `https://www.google.com/search?q=${encodeURIComponent(`${pt.name} ${pt.address || ""}`)}`;
+
+      const html = `
+        <div class="lm-pop">
+          <div class="lm-title">${escapeHtml(pt.name || "Untitled")}</div>
+          ${pt.tagline ? `<div class="lm-sub">${escapeHtml(pt.tagline)}</div>` : ""}
+          <div class="lm-row">
+            <a href="${openHref}" target="_blank" rel="noreferrer" class="lm-btn lm-primary">Open ↗</a>
+            <a href="${mapsHref(pt.lat, pt.lng, pt.name)}" target="_blank" rel="noreferrer" class="lm-btn">Directions</a>
+            ${pt.phone ? `<a href="tel:${pt.phone.replace(/[^0-9+]/g,'')}" class="lm-btn">Call</a>` : ""}
+          </div>
+        </div>`;
+      mkr.bindPopup(html);
+      cluster.addLayer(mkr);
+    });
+
+    if (pts.length) map.fitBounds(bounds.pad(0.2), { animate: true, maxZoom: 16 });
+
+    // weather
+    const updateWeather = async () => {
+      const m = mapRef.current; if (!m) return;
+      const c = m.getCenter();
+      const w = await getWeather(c.lat, c.lng).catch(() => null);
+      if (w) setWx(w);
+    };
+
+    updateBaseByTime();
+    updateWeather();
+
+    map.on("click", () => map.scrollWheelZoom.enable());
+    map.on("moveend", updateBaseByTime);
+    map.on("moveend", updateWeather);
+
+    timeTimer = setInterval(updateBaseByTime, 10 * 60 * 1000);
+    wxTimer   = setInterval(updateWeather,   5 * 60 * 1000);
+  })();
+
+  return () => {
+    try { if (mapRef.current) mapRef.current.remove(); } catch {}
+    mapRef.current = null;
+    if (timeTimer) clearInterval(timeTimer);
+    if (wxTimer)   clearInterval(wxTimer);
+  };
+}, [pts]);
+
 
   /* ---------- render ---------- */
   return (
@@ -441,11 +395,16 @@ const shellStyle = {
 }
 
 /* ---------- util ---------- */
-function escapeHtml(s = "") {
+const mapsHref = (lat, lng, name = "") => {
+  const q = name ? `${name} @${lat},${lng}` : `${lat},${lng}`;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+};
+
+const escapeHtml = (s = "") => {
   return String(s)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
-}
+};
