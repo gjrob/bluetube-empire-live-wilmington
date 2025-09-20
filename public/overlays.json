@@ -1,6 +1,8 @@
 [
-  { "id": "adkt-top", "src": "/overlays/adkt-drip-top.svg", "slot": "custom", "weight": 1 },
-  { "id": "founder-empire", "src": "/overlays/founder-empire.png", "slot": "corner", "weight": 1 },
-  { "id": "founder-champion", "src": "/overlays/founder-champion.svg", "slot": "corner", "weight": 1 },
-  { "id": "test", "src": "/overlays/test-overlay.png", "slot": "lower-third", "weight": 1 }
+  { "src": "/overlays/patriot-topwave.svg",      "pin": { "top": 0,  "left": 0, "right": 0 },           "durationMs": 0 },
+  { "src": "/overlays/patriot-bug.svg",          "pin": { "top": 16, "right": 16 },                     "durationMs": 0 },
+  { "src": "/overlays/patriot-lower-third.svg",  "pin": { "bottom": 0, "left": 0, "right": 0 },         "durationMs": 14000 },
+
+  { "id": "founder-empire",   "src": "/overlays/founder-empire.png",   "slot": "corner", "weight": 1 },
+  { "id": "founder-champion", "src": "/overlays/founder-champion.svg", "slot": "corner", "weight": 1 }
 ]

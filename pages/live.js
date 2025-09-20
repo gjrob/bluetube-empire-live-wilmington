@@ -245,6 +245,7 @@ export default function Live(props) {
       {a.name}
     </button>
   ))}
+<a className="angle" href="/sponsor">Sponsor • Badges</a>
 
   {/* Split toggle (button) */}
   <button

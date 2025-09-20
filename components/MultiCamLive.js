@@ -97,30 +97,30 @@ export default function MultiCamLive({
         </div>
       )}
 
-           {/* ADKT overlay inside the player */}
-      {overlay && (
-        <>
-          <img
-            src="/overlays/adkt-drip-top.svg"
-            alt=""
-            style={{
-              position: 'absolute',
-              left: 0, right: 0, top: 0,
-              height: 'clamp(72px, 12vw, 140px)',
-              zIndex: 5, pointerEvents: 'none'
-            }}
-          />
-          <img
-            src="/overlays/adkt-badge.svg"
-            alt=""
-            style={{
-              position: 'absolute',
-              right: 12, top: 12,
-              width: 180, zIndex: 6, pointerEvents: 'none', opacity: .98
-            }}
-          />
-        </>
-      )}
+{/* Patriotic overlays (inside player) */}
+<img
+  src="/overlays/patriot-topwave.svg"
+  alt=""
+  style={{
+    position: "absolute",
+    left: 0, right: 0, top: 0,
+    height: 140,
+    pointerEvents: "none",
+    zIndex: 9
+  }}
+/>
+<img
+  src="/overlays/patriot-bug.svg"
+  alt=""
+  style={{
+    position: "absolute",
+    right: 16, top: 16,
+    width: 300,
+    pointerEvents: "none",
+    zIndex: 10
+  }}
+/>
+
 
       {/* QR / promo image */}
       {promo && promo.src ? (

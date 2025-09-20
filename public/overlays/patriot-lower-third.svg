@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="200" viewBox="0 0 1920 200">
+  <defs>
+    <linearGradient id="panel" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="rgba(11,25,64,.86)"/>
+      <stop offset="1" stop-color="rgba(9,18,48,.68)"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(28,28)">
+    <rect x="0" y="96" rx="18" ry="18" width="1864" height="120" fill="url(#panel)"
+          stroke="rgba(111,227,255,.28)" stroke-width="2"/>
+    <g font-family="Inter, system-ui" font-weight="900" fill="#dbe7ff">
+      <text x="28" y="146" font-size="32">BlueTubeTV • Wilmington Live</text>
+      <text x="28" y="176" font-size="24" fill="#6fe3ff">live.bluetubetv.live</text>
+    </g>
+    <!-- subtle right flag bars -->
+    <rect x="1580" y="116" width="36" height="80" fill="#e10600" opacity=".85" rx="6"/>
+    <rect x="1624" y="116" width="36" height="80" fill="#ffffff" opacity=".95" rx="6"/>
+    <rect x="1668" y="116" width="36" height="80" fill="#e10600" opacity=".85" rx="6"/>
+    <rect x="1712" y="116" width="36" height="80" fill="#ffffff" opacity=".95" rx="6"/>
+  </g>
+</svg>
