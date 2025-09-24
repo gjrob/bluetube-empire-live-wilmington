@@ -9,3 +9,9 @@ node_modules
 coverage
 # misc
 .DS_Store
+
+# runtime data
+var/
+
+# runtime data
+var/
