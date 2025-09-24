@@ -6,7 +6,11 @@ dist/
 .vercel/
 *.log
 .DS_Store
-
+firebase-debug.log
+*.log
+.env
+.env.*
+.firebase/
 # Env & local
 .env
 .env.*

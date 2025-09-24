@@ -1,0 +1,11 @@
+# env & secrets
+.env
+.env.*
+!.env.example
+# build
+.next
+out
+node_modules
+coverage
+# misc
+.DS_Store
