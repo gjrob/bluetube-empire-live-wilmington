@@ -2,8 +2,7 @@
 
 import React, { Suspense } from "react";
 import MultiCamPlayer from "./players/MultiCamPlayer";
-import FeaturedChip from "@/components/FeaturedChip";
-// ✅ import ONLY from the shim; no try/catch, no require
+import FeaturedChip from "./FeaturedChip";  // ✅ import ONLY from the shim; no try/catch, no require
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
 import ImpressionSummary from "./ImpressionSummary";
 

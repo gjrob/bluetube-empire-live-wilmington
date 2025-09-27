@@ -1,13 +1,21 @@
 import { NextResponse } from "next/server";
-import { readSchedule } from "@/lib/db/slotsStore";
+// Update the import path to the correct relative location
+import { readSchedule } from "../../../../lib/db/slotsStore";
+
 
 export async function GET() {
   const s = await readSchedule();
-  const current = (s.slots[s.activeSlot] || []).find(x => x.active) || null;
-  return NextResponse.json({
-    gameId: s.gameId,
-    slot: s.activeSlot,
-    overlayUrl: current?.overlayUrl ?? null,
-    slotItemId: current?.id ?? null
-  });
+
+  const list = (s.slots?.[s.activeSlot] ?? []) as Array<{ active?: boolean } & Record<string, any>>;
+
+  const idx = Number.isFinite(s.activeIndex) ? s.activeIndex : 0;
+  const picked =
+    (list[idx]?.active ? list[idx] : undefined) ??
+    list.find((x) => x?.active) ??
+    null;
+
+  return NextResponse.json(
+    { item: picked },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }

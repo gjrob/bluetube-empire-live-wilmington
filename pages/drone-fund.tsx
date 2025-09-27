@@ -1,6 +1,6 @@
 // pages/drone-fund.tsx
 import { useEffect, useState } from "react";
-
+import QRCard from "../components/QRCard";
 const GOAL = 36000;
 const PAYPAL = "garlanjrobinson";      // paypal.me/garlanjrobinson
 const VENMO  = "Garlan-Robinson";      // @Garlan-Robinson
@@ -10,6 +10,7 @@ export default function DroneFund() {
   const [raised, setRaised] = useState<number | null>(null);
   const [loadingAmt, setLoadingAmt] = useState<number | null>(null);
   const [custom, setCustom] = useState(25);
+  const FUND = process.env.NEXT_PUBLIC_FUND_URL || "/fund";
 
   useEffect(() => {
     (async () => {
@@ -63,7 +64,17 @@ export default function DroneFund() {
       <div style={{ marginTop: 6, opacity: .85 }}>
         <strong>${(raised ?? 0).toLocaleString()}</strong> raised of ${GOAL.toLocaleString()}
       </div>
-
+           <div style={{ marginTop: 24 }}>
+        <QRCard
+          img="/overlays/bluetubetv.png"   // 👈 replace with your BlueTubeTV logo file
+          q={FUND}  // 👈 your live contribution link
+          label="Scan to Support"
+          cta="Tip the Drone • Keep Us Flying"
+          href={FUND}   
+          layout="side"
+          w={540}
+        />
+      </div>
       {/* donate */}
       <h2 style={{ marginTop: 28 }}>Donate</h2>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>

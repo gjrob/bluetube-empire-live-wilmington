@@ -1,23 +1,75 @@
 /* eslint-disable react-hooks/rules-of-hooks */
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Head from "next/head";
 import dynamic from "next/dynamic";
+import { useHlsPlayer } from "../hooks/useHlsPlayer"; // relative path
 import BrandTheme from "../components/BrandTheme";
 import BrandLockup from "../components/BrandLockup";
 import { BrowserProvider, Contract, parseEther } from "ethers";
-
+import QRCard from "../components/QRCard";
 const MultiCamLive = dynamic(() => import("../components/MultiCamLive"), { ssr: false });
 
+const HLS_A = process.env.NEXT_PUBLIC_HLS_A || process.env.NEXT_PUBLIC_LIVEPEER_HLS || "";
+const HLS_B = process.env.NEXT_PUBLIC_HLS_B || "";
 const SITE_URL    = process.env.NEXT_PUBLIC_SITE_URL || "https://live.bluetubetv.live";
 const TIPJAR_ADDR = process.env.NEXT_PUBLIC_TIPJAR_ADDRESS;
 const PAYOUT_ADDR = process.env.NEXT_PUBLIC_PAYOUT_ADDRESS;
 const MOMENT_ADDR = process.env.NEXT_PUBLIC_MOMENT_ADDRESS;
-
 const SC_TRACK_ID = "943082998";
 
-// FIX: Read HLS URLs once at the top, so they are available for client-side use
-const HLS_A = process.env.NEXT_PUBLIC_HLS_A || process.env.NEXT_PUBLIC_LIVEPEER_HLS || "";
-const HLS_B = process.env.NEXT_PUBLIC_HLS_B || "";
+/* ---------------- optional player (not default export) ---------------- */
+export function LivePlayer() {
+  const ref = useRef(null);
+  const src = process.env.NEXT_PUBLIC_HLS_MAIN;
+
+  // Attach HLS to the <video>
+  useHlsPlayer(ref.current, src);
+
+  return (
+    <>
+      <Head>
+        <title>BlueTubeTV • Live</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </Head>
+
+      <BrandTheme />
+
+      <div style={{ position: "relative", width: "100%", maxWidth: "1280px", margin: "0 auto" }}>
+        <video
+          ref={ref}
+          autoPlay
+          muted
+          playsInline
+          controls
+          style={{ width: "100%", height: "auto", background: "#000" }}
+        />
+
+        {/* Overlay iframe stacked above the video */}
+        <iframe
+          title="Overlay"
+          src={`/overlay/image?img=${encodeURIComponent(
+            "https://your-cdn.com/onthyme.png"
+          )}&anchor=bottom-right&x=24px&y=24px&w=360&animate=slide-up&holdMs=9999999`}
+          style={{ position: "absolute", inset: 0, border: 0, pointerEvents: "none" }}
+          width="100%"
+          height="100%"
+        />
+      </div>
+         <QRCard img="/overlays/onthyme.png" q="https://onthyme.example" cta="Fund This Drone" />
+
+      <BrandLockup />
+      <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 16 }}>
+        <ShareButton />
+        <MapButton />
+        <CopyLink />
+      </div>
+
+      <div style={{ marginTop: 24 }}>
+        <ChatPanel />
+      </div>
+    </>
+  );
+}
 
 /* ---------------- helpers ---------------- */
 async function getProviderAndSigner() {
@@ -28,6 +80,7 @@ async function getProviderAndSigner() {
   const account = await signer.getAddress();
   return { provider, signer, account };
 }
+
 function ShareButton() {
   const [href, setHref] = useState(SITE_URL + "/live");
   useEffect(() => { if (typeof window !== "undefined") setHref(window.location.href); }, []);
@@ -36,22 +89,29 @@ function ShareButton() {
   const url  = `https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(href)}&via=${via}`;
   return <a className="angle" href={url} target="_blank" rel="noreferrer">Share ↗</a>;
 }
+
 function MapButton({ campaign = "showcase", newTab = true }) {
   const href = `/map?campaign=${encodeURIComponent(campaign)}`;
   const tab  = newTab ? { target: "_blank", rel: "noreferrer" } : {};
   return <a className="angle" href={href} {...tab}>Map • Center{newTab ? " ↗" : ""}</a>;
 }
+
 function CopyLink() {
   const [copied, setCopied] = useState(false);
   return (
-    <button className="angle" onClick={() => {
-      if (typeof window === "undefined") return;
-      navigator.clipboard.writeText(window.location.href).then(() => setCopied(true));
-      setTimeout(() => setCopied(false), 1200);
-    }}>{copied ? "Copied!" : "Copy link"}</button>
-    );
-  }
-/* ---------------- chat + ticker (unchanged) ---------------- */
+    <button
+      className="angle"
+      onClick={() => {
+        if (typeof window === "undefined") return;
+        navigator.clipboard.writeText(window.location.href).then(() => setCopied(true));
+        setTimeout(() => setCopied(false), 1200);
+      }}
+    >
+      {copied ? "Copied!" : "Copy link"}
+    </button>
+  );
+}
+
 function ChatPanel() {
   const src = `https://www3.cbox.ws/box/?boxid=3548678&boxtag=9qUukn&theme=light&boxbg=transparent&boxborder=0`;
   return (
@@ -61,7 +121,7 @@ function ChatPanel() {
         <a href={`${src}&boxtoggle=1`} target="_blank" rel="noreferrer" className="chatPop">Pop-out ↗</a>
       </div>
       <div className="chatWrap">
-        <iframe src={src} allow="autoplay" scrolling="auto" style={{ background: "transparent" }} />
+        <iframe title="Chat" src={src} allow="autoplay" scrolling="auto" style={{ background: "transparent" }} />
       </div>
       <style jsx>{`
         .chatPanel { min-height: 520px; overflow: hidden; border-radius: 14px }
@@ -72,11 +132,10 @@ function ChatPanel() {
     </aside>
   );
 }
+
 function SponsorTicker({ items = [
   { badge: "SPONSOR", text: "Live Oak Bank • Local Business Heroes" },
-  { badge: "SPECIAL", text: "Creator Print House • Custom Merchandise" },
   { badge: "HOT",     text: "Sweet D's Cuisine • HOMEMADE SWEETS" },
-  { badge: "Cigars",  text: "Sip And Chill • Lounge" },
   { badge: "SUPPORT", text: "On Tyme Restaurant • Restaurant" },
 ]}) {
   return (
@@ -87,7 +146,7 @@ function SponsorTicker({ items = [
         ))}
       </div>
       <style jsx>{`
-        .ticker { position:fixed; left:0; right:0; bottom:0; z-index:50; background:linear-gradient(90deg,#0a0e27,#1a237e,#0f172a); border-top:1px solid rgba(255,255,255,.12); box-shadow:0 -6px 18px rgba(0,0,0,.35) }
+        .ticker { position:fixed; left:0; right:0; bottom:0; z-index:50; background:linear-gradient(90deg,#0a0e27,#1a237e,#0f172a); border-top:1px solid rgba(255,255,255,.12); box-shadow: 0 -6px 18px rgba(0,0,0,.35) }
         .ticker-track { display:flex; gap:40px; white-space:nowrap; overflow:hidden; animation:ticker 28s linear infinite; padding:10px 16px; font-weight:800; color:#dbe7ff }
         .ticker:hover .ticker-track { animation-play-state: paused }
         .t-badge { background:#4f9cff; color:#fff; padding:4px 8px; border-radius:999px; margin-right:10px; font-size:.8rem }
@@ -97,11 +156,10 @@ function SponsorTicker({ items = [
   );
 }
 
-/* ---------------- page ---------------- */
+/* ---------------- page (default) ---------------- */
 export default function Live(props) {
   const meta   = props?.meta || {};
   const angles = props?.angles || [];
-  // FIX: Use HLS_A and HLS_B from top-level constants
   const ANGLES = Array.isArray(angles) && angles.length ? angles : [
     { name: "Cam A", url: HLS_A },
     { name: "Cam B", url: HLS_B },
@@ -110,9 +168,9 @@ export default function Live(props) {
   const pageTitle = meta.title || "BlueTubeTV • Wilmington Live";
 
   // view + audio
-  const [idx, setIdx] = useState(0);           // 0=A, 1=B
+  const [idx, setIdx] = useState(0);
   const [split, setSplit] = useState(false);
-  const [audioIdx, setAudioIdx] = useState(0); // 0:A, 1:B, 2:SC
+  const [audioIdx, setAudioIdx] = useState(0);
   const [showChat, setShowChat] = useState(true);
 
   // readiness
@@ -122,16 +180,23 @@ export default function Live(props) {
 
   // wallet
   const [ready, setReady] = useState(false);
-  useEffect(() => { (async () => { try { const { signer } = await getProviderAndSigner(); if (signer) setReady(true); } catch {} })(); }, []);
+  useEffect(() => {
+    (async () => {
+      try {
+        const { signer } = await getProviderAndSigner();
+        if (signer) setReady(true);
+      } catch {}
+    })();
+  }, []);
   useEffect(() => { if (typeof window !== "undefined") setShowChat(window.innerWidth >= 1200); }, []);
 
-  /* ------- payments (Stripe uses USD, not cents) ------- */
+  /* payments (Stripe uses USD, not cents) */
   const startStripe = useCallback(async (amountUsd, kind = "tip") => {
     try {
       const r = await fetch("/api/stripe/create-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ handle: "live", amount: amountUsd, kind }), // dollars
+        body: JSON.stringify({ handle: "live", amount: amountUsd, kind }),
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok || !data?.url) return alert(data?.error || `Stripe failed (HTTP ${r.status})`);
@@ -154,6 +219,7 @@ export default function Live(props) {
       } else { throw e; }
     }
   }, []);
+
   const handleEthTip = useCallback(async (ethAmount = "0.002") => {
     await ensureLocalChain();
     try {
@@ -178,7 +244,6 @@ export default function Live(props) {
     } catch (e) { alert(e?.message || "ETH tip failed"); }
   }, [ensureLocalChain]);
 
-  /* ---------------- render ---------------- */
   return (
     <>
       <Head>
@@ -210,18 +275,21 @@ export default function Live(props) {
             <ShareButton />
             <CopyLink />
           </header>
+
           <a href="/yb-raleigh" aria-label="Red Eye — YoungBoy">
-  <img
-    src="/og-yg-live.png"       // or "/castle.png"
-    alt="MASA — YoungBoy"
-    style={{
-      width: "100%", maxWidth: 720, height: "auto",
-      borderRadius: 12, border: "1px solid #1f2937",
-      display: "block", margin: "8px auto 0"
-    }}
-  />
-</a>
+            <img
+              src="/og-yg-live.png"
+              alt="MASA — YoungBoy"
+              style={{
+                width: "100%", maxWidth: 720, height: "auto",
+                borderRadius: 12, border: "1px solid #1f2937",
+                display: "block", margin: "8px auto 0"
+              }}
+            />
+          </a>
+
           <a className="angle" href="/drone-fund">Donate</a>
+
           <a href="/yb-raleigh" aria-label="NBA YoungBoy — Raleigh">
             <img
               src="/og-yb-live.png"
@@ -229,56 +297,58 @@ export default function Live(props) {
               style={{ width: "100%", maxWidth: 720, height: "auto", borderRadius: 12, border: "1px solid #1f2937", display: "block", margin: "8px auto 0" }}
             />
           </a>
-<a className="angle" href="/home">Home</a>
-  {/* Anglebar: view + audio */}
-<div className="anglebar">
-  {/* A/B single-view */}
-  {ANGLES.map((a, i) => (
-    <button
-      key={i}
-      type="button"
-      className={`angle ${i === idx && !split ? "angle--active" : ""}`}
-      onClick={() => { setSplit(false); setIdx(i); }}
-      disabled={!a.url}
-      title={a.url ? a.url : "No URL set"}
-    >
-      {a.name}
-    </button>
-  ))}
-<a className="angle" href="/sponsor">Sponsor • Badges</a>
 
-  {/* Split toggle (button) */}
-  <button
-    type="button"
-    className={`angle ${split ? "angle--active" : ""}`}
-    onClick={() => { setSplit(s => !s); setAudioIdx(0); }}
-    disabled={!ANGLES[0]?.url || !ANGLES[1]?.url || !canSplit}
-    title={canSplit ? "Show both" : "Waiting for both feeds"}
-  >
-    Split
-  </button>
+          <a className="angle" href="/home">Home</a>
 
-  {/* Convenience: one-click SoundCloud.
-     If not split, this turns split ON and sets audio to SC. */}
-  <button
-    type="button"
-    className={`angle ${split && audioIdx === 2 ? "angle--active" : ""}`}
-    onClick={() => { if (!split) setSplit(true); setAudioIdx(2); }}
-    title="Use SoundCloud audio in split view"
-  >
-    SoundCloud
-  </button>
-</div>
-<div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center", margin:"8px 0 4px" }}>
-  <label style={{ display:"inline-flex", alignItems:"center", gap:8 }}>
-    <input
-      type="checkbox"
-      checked={split}
-      onChange={() => { setSplit(s => !s); setAudioIdx(0); }}
-    />
-    <span>Split View</span>
-  </label>
+          {/* Anglebar: view + audio */}
+          <div className="anglebar">
+            {/* A/B single-view */}
+            {ANGLES.map((a, i) => (
+              <button
+                key={i}
+                type="button"
+                className={`angle ${i === idx && !split ? "angle--active" : ""}`}
+                onClick={() => { setSplit(false); setIdx(i); }}
+                disabled={!a.url}
+                title={a.url ? a.url : "No URL set"}
+              >
+                {a.name}
+              </button>
+            ))}
 
+            <a className="angle" href="/sponsor">Sponsor • Badges</a>
+
+            {/* Split toggle */}
+            <button
+              type="button"
+              className={`angle ${split ? "angle--active" : ""}`}
+              onClick={() => { setSplit(s => !s); setAudioIdx(0); }}
+              disabled={!ANGLES[0]?.url || !ANGLES[1]?.url || !canSplit}
+              title={canSplit ? "Show both" : "Waiting for both feeds"}
+            >
+              Split
+            </button>
+
+            {/* One-click SoundCloud in split */}
+            <button
+              type="button"
+              className={`angle ${split && audioIdx === 2 ? "angle--active" : ""}`}
+              onClick={() => { if (!split) setSplit(true); setAudioIdx(2); }}
+              title="Use SoundCloud audio in split view"
+            >
+              SoundCloud
+            </button>
+          </div>
+
+          <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center", margin:"8px 0 4px" }}>
+            <label style={{ display:"inline-flex", alignItems:"center", gap:8 }}>
+              <input
+                type="checkbox"
+                checked={split}
+                onChange={() => { setSplit(s => !s); setAudioIdx(0); }}
+              />
+              <span>Split View</span>
+            </label>
             {split && (
               <div style={{ display:"inline-flex", gap:8, alignItems:"center", marginLeft:12 }}>
                 <span style={{ opacity:.7 }}>Audio from:</span>
@@ -298,7 +368,6 @@ export default function Live(props) {
                   active: idx === 0 ? 'a' : 'b',
                   audioFrom: audioIdx === 0 ? 'a' : audioIdx === 1 ? 'b' : 'sc',
                 }}
-                // FIX: Pass HLS_A and HLS_B from top-level constants
                 urls={{ a: HLS_A, b: HLS_B }}
                 soundcloud={{ trackId: SC_TRACK_ID }}
                 overlay
@@ -306,8 +375,7 @@ export default function Live(props) {
                   if (which === 'a') setCamAReady(ok);
                   if (which === 'b') setCamBReady(ok);
                 }}
-                 promo={{ src: "/promos/tiktok-tim-qr.png", width: 140 }}  // <- your QR overlay
-
+               promo={{ src: "/overlays/bluetubetv-qr.png", width: 140 }} // QR overlay
               />
             </section>
             {showChat ? <ChatPanel /> : null}
@@ -345,8 +413,8 @@ export default function Live(props) {
             #tipbar .tipbtn { pointer-events:auto; padding:10px 16px; border:0; border-radius:12px; font-weight:700; background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff;
                                box-shadow:0 8px 24px rgba(37,99,235,.35); }
           `}</style>
-          </div>
+        </div>
       </BrandTheme>
- </>
+    </>
   );
 }

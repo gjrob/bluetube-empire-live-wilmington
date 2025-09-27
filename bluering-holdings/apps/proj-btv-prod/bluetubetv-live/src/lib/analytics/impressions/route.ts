@@ -1,25 +1,35 @@
 import { NextResponse } from "next/server";
+import { addImpression, type Impression } from "./store";
 
-// TODO: gate with real auth/JWT; for now accept and log/append.
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const events = Array.isArray(body?.events) ? body.events : [];
-    // In production, insert into your DB / BigQuery
-    // Example shape:
-    // { streamId, itemId, slot, layout, visibleSec, startedAt, endedAt }
-    console.log("[impressions] received", events.length);
-    return NextResponse.json({ ok: true, received: events.length });
+
+    // Case 1: array of events
+    if (Array.isArray(body?.events)) {
+      const events = body.events as Impression[];
+      for (const e of events) {
+        if (e.itemId && typeof e.visibleSec === "number") {
+          addImpression(e);
+        }
+      }
+      console.log("[impressions] received", events.length);
+      return NextResponse.json({ ok: true, received: events.length });
+    }
+
+    // Case 2: single impression
+    const impression = body as Partial<Impression>;
+    if (!impression?.itemId || typeof impression.visibleSec !== "number") {
+      return NextResponse.json(
+        { error: "itemId and visibleSec required" },
+        { status: 400 }
+      );
+    }
+    addImpression(impression as Impression);
+    return NextResponse.json({ ok: true, received: 1 });
   } catch (e) {
+    console.error("[impressions] error", e);
     return new NextResponse("Bad Request", { status: 400 });
   }
-}
-// quick summary endpoint
-export async function GET() {
-  const byItem: Record<string, number> = {};
-  for (const e of memoryStore) {
-    byItem[e.itemId] = (byItem[e.itemId] ?? 0) + e.visibleSec;
-  }
-  return NextResponse.json({ total: memoryStore.length, byItem });
 }
 

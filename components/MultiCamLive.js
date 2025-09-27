@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useRef } from 'react';
-
+import { useHlsPlayer } from "../hooks/useHlsPlayer";
 /** Attach HLS to a <video> (Hls.js + Safari fallback) */
 async function attachHls(video, src, onOnline) {
   if (!video || !src) return;

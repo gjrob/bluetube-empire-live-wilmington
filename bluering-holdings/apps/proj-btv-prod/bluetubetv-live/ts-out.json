@@ -1,0 +1,90 @@
+{
+    "compilerOptions": {
+        "target": "es2022",
+        "lib": [
+            "dom",
+            "es2022"
+        ],
+        "jsx": "preserve",
+        "module": "esnext",
+        "moduleResolution": "bundler",
+        "strict": true,
+        "baseUrl": "./",
+        "paths": {
+            "@/*": [
+                "src/*"
+            ]
+        },
+        "esModuleInterop": true,
+        "resolveJsonModule": true,
+        "noEmit": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "incremental": true,
+        "allowSyntheticDefaultImports": true,
+        "resolvePackageJsonExports": true,
+        "resolvePackageJsonImports": true,
+        "useDefineForClassFields": true,
+        "noImplicitAny": true,
+        "noImplicitThis": true,
+        "strictNullChecks": true,
+        "strictFunctionTypes": true,
+        "strictBindCallApply": true,
+        "strictPropertyInitialization": true,
+        "strictBuiltinIteratorReturn": true,
+        "alwaysStrict": true,
+        "useUnknownInCatchVariables": true
+    },
+    "files": [
+        "./next-env.d.ts",
+        "./src/app/layout.tsx",
+        "./src/app/page.tsx",
+        "./src/app/admin/page.tsx",
+        "./src/app/admin/grid/page.tsx",
+        "./src/app/admin/slots/page.tsx",
+        "./src/app/admin/streams/manifest/route.ts",
+        "./src/app/api/analytics/impressions/route.ts",
+        "./src/app/api/auth/route.ts",
+        "./src/app/api/events/impression/route.ts",
+        "./src/app/api/healthz/route.ts",
+        "./src/app/api/overlays/rockstar/page.tsx",
+        "./src/app/api/recap/route.ts",
+        "./src/app/api/slots/route.ts",
+        "./src/app/api/slots/activate/route.ts",
+        "./src/app/api/slots/active/route.ts",
+        "./src/app/api/streams/manifest/route.ts",
+        "./src/app/api/streams/manifest/feature/route.ts",
+        "./src/app/go/[id]/route.ts",
+        "./src/components/AdminDashboard.tsx",
+        "./src/components/FeaturedChip.tsx",
+        "./src/components/ImpressionSummary.tsx",
+        "./src/components/admin/AdminGrid10.tsx",
+        "./src/components/admin/RockstarLinkMaker.tsx",
+        "./src/components/admin/VideoTile.tsx",
+        "./src/components/overlays/ActiveOverlay.tsx",
+        "./src/components/overlays/OverlayLayer.tsx",
+        "./src/components/players/MultiCamPlayer.tsx",
+        "./src/components/players/RotatingVideoBox.tsx",
+        "./src/components/players/VideoTile.tsx",
+        "./src/components/ui/TabsFallback.tsx",
+        "./src/components/ui/tabs.tsx",
+        "./src/hooks/useHlsPlayer.ts",
+        "./src/lib/analytics/useImpressions.ts",
+        "./src/lib/analytics/impressions/route.ts",
+        "./src/lib/analytics/impressions/store.ts",
+        "./src/lib/db/slotsStore.ts",
+        "./src/lib/overlays/rotator.ts",
+        "./src/lib/overlays/types.ts",
+        "./src/lib/overlays/useRotation.ts",
+        "./src/lib/rbac/policies.ts",
+        "./src/lib/schemas/slots.ts",
+        "./src/middleware/auth.ts"
+    ],
+    "include": [
+        "next-env.d.ts",
+        "src/**/*"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}

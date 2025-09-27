@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start -p ${PORT:-4000}"
   },
   "keywords": [],
   "author": "",
@@ -14,6 +14,7 @@
   "packageManager": "pnpm@10.17.1",
   "dependencies": {
     "@google-cloud/bigquery": "^8.1.1",
+    "hls.js": "^1.6.13",
     "next": "^14.2.32",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

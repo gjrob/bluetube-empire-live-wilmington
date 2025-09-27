@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { OverlayItem, OverlaySlot } from "../overlays/types";
+import type { ImpressionEvent } from "../schemas/slots";
 
 type VisibleKey = string;
 
@@ -66,13 +67,18 @@ export function useImpressions(args: {
       if (!batch.current.length) return;
       const payload = batch.current.splice(0, batch.current.length);
       try {
-        await fetch("/api/analytics/impression", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ events: payload }),
-          keepalive: true, // survive page close
-        });
-      } catch {
+  await fetch("/api/analytics/impression", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      events: payload.map(e => ({
+        ...e,
+        when: new Date(e.endedAt).getTime(),
+        itemId: e.itemId,
+      }))
+    }),
+  });
+} catch {
         // If it fails, requeue (best effort)
         batch.current.unshift(...payload);
       }

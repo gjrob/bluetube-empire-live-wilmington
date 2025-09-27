@@ -24,7 +24,8 @@
     "lib",
     "hooks",
     "**/*.ts",
-    "**/*.tsx"
+    "**/*.tsx",
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",

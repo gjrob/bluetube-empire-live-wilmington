@@ -3,18 +3,17 @@ import { useEffect, useState } from "react";
 
 export default function ActiveOverlay() {
   const [src, setSrc] = useState<string | null>(null);
-  const [slotItemId, setSlotItemId] = useState<string | null>(null);
-
+const [itemId, setItemId] = useState<string | null>(null);
   async function refresh() {
     const r = await fetch("/api/slots/active", { cache: "no-store" });
     const j = await r.json();
     setSrc(j.overlayUrl);
-    setSlotItemId(j.slotItemId);
-    if (j.slotItemId) {
+   setItemId(j.itemId);
+    if (j.itemId) {
       fetch("/api/events/impression", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slotItemId: j.slotItemId })
+        body: JSON.stringify({ itemId: j.itemId })
       });
     }
   }

@@ -3,9 +3,10 @@
 import React, { useEffect, useRef } from "react";
 import Hls from "hls.js";
 import OverlayLayer from "../overlays/OverlayLayer";
-import type { OverlayItem } from "@/lib/overlays/types";
-import { useOverlayRotation } from "@/lib/overlays/useRotation";
-import { useImpressions } from "@/lib/analytics/useImpressions";
+import type { OverlayItem } from "../../lib/overlays/types";
+import { useOverlayRotation } from "../../lib/overlays/useRotation";
+import { useImpressions } from "../../lib/analytics/useImpressions";
+import type { SlotItem } from "../../lib/schemas/slots";
 
 type Stream = { id: string; url: string; label?: string; overlays?: OverlayItem[] };
 

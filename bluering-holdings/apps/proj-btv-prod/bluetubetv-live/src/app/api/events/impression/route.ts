@@ -1,15 +1,19 @@
 import { NextResponse } from "next/server";
-import { recordImpression, readSchedule } from "@/lib/db/slotsStore";
+import { recordImpression, readSchedule } from "@lib/db/slotsStore";  // ✅ alias
+import { randomUUID } from "crypto";
 
 export async function POST(req: Request) {
-  const { slotItemId } = await req.json();
+  const body = await req.json().catch(() => ({}));
+
   const s = await readSchedule();
+  const { itemId } = body;
   await recordImpression({
-    ts: new Date().toISOString(),
+    id: randomUUID(),
+    when: Date.now(),
     gameId: s.gameId,
     slot: s.activeSlot,
-    slotItemId,
-    viewerHash: undefined,
+    itemId,
   });
-  return NextResponse.json({ ok: true });
+
+  return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
 }

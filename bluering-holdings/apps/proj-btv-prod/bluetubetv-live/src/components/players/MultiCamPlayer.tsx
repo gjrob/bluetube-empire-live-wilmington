@@ -1,32 +1,43 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import type { OverlayItem } from "@/lib/overlays/types";
+import type { OverlayItem } from "../../lib/overlays/types";
 import RotatingVideoBox from "./RotatingVideoBox";
-
+import VideoTile from "./VideoTile";
+import type { SlotItem } from "../../lib/schemas/slots";
+import { readSchedule } from "../../lib/db/slotsStore"; 
 type Stream = { id: string; url: string; label?: string; overlays?: OverlayItem[] };
+type Layout = "solo" | "split-2" | "grid-3" | "tiles";
 type Manifest = {
   streams: Stream[];
-  layouts?: ("solo" | "split-2" | "grid-3")[];
+  layouts?: Layout[];
   globalOverlays?: OverlayItem[];
 };
 
 export default function MultiCamPlayer() {
-  const [streams, setStreams] = useState<Stream[]>([]);
-  const [layout, setLayout] = useState<"solo" | "split-2" | "grid-3">("solo");
+  const [layout, setLayout] = useState<Layout>("solo");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [globalOverlays, setGlobalOverlays] = useState<OverlayItem[]>([]);
   const [featuredUrl, setFeaturedUrl] = useState<string | null>(null);
 
+  // Seed with defaults; manifest will overwrite
+  const [streams, setStreams] = useState<Stream[]>([
+    { id: "stream1", url: "https://cdn.livepeer.studio/hls/stream1/index.m3u8" },
+    { id: "stream2", url: "https://cdn.livepeer.studio/hls/stream2/index.m3u8" },
+    { id: "stream3", url: "https://cdn.livepeer.studio/hls/stream3/index.m3u8" },
+    { id: "stream4", url: "https://cdn.livepeer.studio/hls/stream4/index.m3u8" },
+  ]);
+
   // Load manifest
   useEffect(() => {
-    const manifestUrl = process.env.NEXT_PUBLIC_STREAM_MANIFEST || "/api/streams/manifest";
+    const manifestUrl =
+      process.env.NEXT_PUBLIC_STREAM_MANIFEST || "/api/streams/manifest";
     fetch(manifestUrl)
       .then((r) => r.json())
       .then((data: Manifest) => {
         const s: Stream[] = data?.streams ?? [];
-        setStreams(s);
-        setLayout((data?.layouts?.[0] as any) || "solo");
+        if (s.length) setStreams(s);
+        setLayout((data?.layouts?.[0] as Layout) || "solo");
         setActiveId(s[0]?.id ?? null);
         setGlobalOverlays(data?.globalOverlays ?? []);
       })
@@ -35,7 +46,7 @@ export default function MultiCamPlayer() {
 
   // Poll featured switch (optional)
   useEffect(() => {
-    let t: ReturnType<typeof setInterval> | null = null;
+    let t: ReturnType<typeof setInterval> | undefined;
     const load = async () => {
       try {
         const r = await fetch("/api/streams/feature", { cache: "no-store" });
@@ -67,12 +78,14 @@ export default function MultiCamPlayer() {
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <div className="inline-flex rounded-xl border border-neutral-800 overflow-hidden">
-          {(["solo", "split-2", "grid-3"] as const).map((l) => (
+          {(["solo", "split-2", "grid-3", "tiles"] as Layout[]).map((l) => (
             <button
               key={l}
               onClick={() => setLayout(l)}
               className={`px-3 py-1.5 text-sm ${
-                layout === l ? "bg-white text-black" : "bg-neutral-900 text-neutral-300"
+                layout === l
+                  ? "bg-white text-black"
+                  : "bg-neutral-900 text-neutral-300"
               }`}
             >
               {l}
@@ -86,7 +99,9 @@ export default function MultiCamPlayer() {
               key={s.id}
               onClick={() => setActiveId(s.id)}
               className={`px-3 py-1.5 text-sm ${
-                activeId === s.id ? "bg-white text-black" : "bg-neutral-900 text-neutral-300"
+                activeId === s.id
+                  ? "bg-white text-black"
+                  : "bg-neutral-900 text-neutral-300"
               }`}
             >
               {s.label ?? s.id}
@@ -95,7 +110,7 @@ export default function MultiCamPlayer() {
         </div>
       </div>
 
-      {/* Layouts (tiles own their hooks inside RotatingVideoBox) */}
+      {/* Layouts */}
       {layout === "solo" && active && (
         <RotatingVideoBox
           stream={active}
@@ -129,6 +144,15 @@ export default function MultiCamPlayer() {
               layout="grid-3"
               className="aspect-video w-full"
             />
+          ))}
+        </div>
+      )}
+
+      {/* All tiles = VideoTile everywhere (no overlays) */}
+      {layout === "tiles" && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {streams.map((s) => (
+            <VideoTile key={s.id} src={s.url} />
           ))}
         </div>
       )}
