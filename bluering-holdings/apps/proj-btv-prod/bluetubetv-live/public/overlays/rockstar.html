@@ -5,280 +5,206 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Rock Star Curtain Overlay</title>
   <style>
-    /* =============== RESET & STAGE =============== */
-    html, body { height: 100%; }
-    body {
-      margin: 0;
-      overflow: hidden; /* overlay-style */
-      background: transparent; /* Important for compositing over video */
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-    }
-    .stage {
-      position: fixed;
-      inset: 0;
-      pointer-events: none; /* allow clicks through */
-      display: grid;
-      grid-template-rows: 1fr auto;
-    }
+    /* base */
+    html, body { margin:0; padding:0; background:transparent; height:100%; overflow:hidden; }
+    :root { --speed:1.8s; }
+.banner{
+  max-width: var(--safeMax);
+  text-align:center;
+  padding: .1em .25em;
+  border-radius: 16px;
+  background: rgba(0,0,0,.22);
+  backdrop-filter: blur(2px);
+  border: 1px solid rgba(255,255,255,.06);
+}
+    /* stage */
+    .stage { position:fixed; inset:0; pointer-events:none; display:grid; grid-template-rows:1fr auto; }
+    .sky   { position:absolute; inset:0; overflow:hidden; z-index:1; }
+    .banner-wrap { position:relative; z-index:2; display:grid; place-items:center; padding-top:min(7vh,80px); }
 
-    /* =============== CURTAINS =============== */
-    .curtain {
-      position: absolute;
-      top: 0; bottom: 0; width: 52vw; /* slight overlap */
-      filter: drop-shadow(0 12px 16px rgba(0,0,0,.45));
-      background:
-        radial-gradient(120% 140% at 50% 10%, rgba(255,255,255,.08), rgba(255,255,255,0) 40%),
-        repeating-linear-gradient(90deg, rgba(0,0,0,.2) 0 2px, rgba(0,0,0,0) 2px 30px),
-        linear-gradient(180deg,#5d0a0a 0%, #2b0202 40%, #190000 100%);
-      background-blend-mode: screen, multiply, normal;
-      /* faux velvet folds */
-    }
-    .curtain.left { left: 0; transform: translateX(0); transform-origin: left center; }
-    .curtain.right { right: 0; transform: translateX(0); transform-origin: right center; }
-
-    .rope {
-      position: absolute; top: 50%; width: 100%; height: 8px;
-      background: linear-gradient(90deg,#7d2,#ed0,#a60);
-      box-shadow: 0 2px 6px rgba(0,0,0,.4) inset;
-      opacity: .35;
-    }
-
-    /* =============== BANNER =============== */
-    .banner-wrap {
-      position: relative; z-index: 2;
-      display: grid; place-items: center; padding-top: min(7vh, 80px);
-    }
+    /* banner */
     .banner {
-      pointer-events: none;
-      font-weight: 900;
-      letter-spacing: .04em;
-      text-transform: uppercase;
-      font-size: clamp(28px, 10vw, 160px);
-      line-height: 1;
-      padding: .15em .35em;
-      border-radius: 16px;
-      background: rgba(0,0,0,.28);
-      backdrop-filter: blur(2px);
-      border: 1px solid rgba(255,255,255,.08);
-      /* Gold text effect */
-      --gold1: #f6e27a; --gold2: #f9b233; --gold3: #f6d365; --gold4:#eab308; --gold5:#9a6b16;
-      background-clip: padding-box;
-      color: transparent;
-      -webkit-text-stroke: 1px rgba(0,0,0,.65);
-      text-shadow:
-        0 2px 0 rgba(0,0,0,.35),
-        0 4px 16px rgba(250, 200, 90, .35);
-      background-image: linear-gradient(180deg, var(--gold1), var(--gold2) 28%, var(--gold3) 52%, var(--gold4) 75%, var(--gold5));
-      -webkit-background-clip: text; background-clip: text;
-      animation: glint 3.2s ease-in-out infinite;
+      pointer-events:none; font-weight:900; letter-spacing:.04em; text-transform:uppercase;
+      font-size:clamp(28px,10vw,160px); line-height:1; padding:.15em .35em; border-radius:16px;
+      background:rgba(0,0,0,.28); backdrop-filter:blur(2px); border:1px solid rgba(255,255,255,.08);
+      --gold1:#f6e27a; --gold2:#f9b233; --gold3:#f6d365; --gold4:#eab308; --gold5:#9a6b16;
+      color:transparent; -webkit-text-stroke:1px rgba(0,0,0,.65);
+      text-shadow:0 2px 0 rgba(0,0,0,.35), 0 4px 16px rgba(250,200,90,.35);
+      background-image:linear-gradient(180deg,var(--gold1),var(--gold2) 28%,var(--gold3) 52%,var(--gold4) 75%,var(--gold5));
+      -webkit-background-clip:text; background-clip:text; animation:glint 3.2s ease-in-out infinite;
     }
     @keyframes glint {
-      0%, 100% { text-shadow: 0 2px 0 rgba(0,0,0,.35), 0 4px 12px rgba(250,200,90,.25); }
-      50% { text-shadow: 0 2px 0 rgba(0,0,0,.35), 0 6px 26px rgba(255,220,120,.55); }
+      0%,100%{ text-shadow:0 2px 0 rgba(0,0,0,.35), 0 4px 12px rgba(250,200,90,.25) }
+      50%    { text-shadow:0 2px 0 rgba(0,0,0,.35), 0 6px 26px rgba(255,220,120,.55) }
     }
+    .subtitle { margin-top:.6rem; font-size:clamp(12px,2.2vw,22px); color:rgba(255,255,255,.9); text-shadow:0 2px 6px rgba(0,0,0,.6); }
 
-    .subtitle {
-      margin-top: .6rem;
-      font-size: clamp(12px, 2.2vw, 22px);
-      color: rgba(255,255,255,.9);
-      text-shadow: 0 2px 6px rgba(0,0,0,.6);
+    /* ticker */
+    .ticker { grid-row:2; width:100%; height:44px; display:grid; align-items:center;
+      background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,.35));
+      border-top:1px solid rgba(255,255,255,.08); overflow:hidden; opacity:0; transition:opacity .6s ease; }
+    .ticker.on { opacity:1; }
+    .ticker-track { white-space:nowrap; will-change:transform; animation:scroll 20s linear infinite; }
+    @keyframes scroll { from{transform:translateX(100%)} to{transform:translateX(-100%)} }
+
+    /* logo pin */
+    .logo-pin { position:absolute; right:1.2rem; top:1.2rem; z-index:3; opacity:0; transform:translateY(-8px);
+      transition:opacity .8s ease, transform .8s ease; background:rgba(0,0,0,.35);
+      border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:.5rem .65rem;
+      display:grid; grid-auto-flow:column; gap:.5rem; align-items:center; backdrop-filter:blur(2px); }
+    .logo-pin img { height:40px; width:auto; display:block; }
+    .logo-pin span { color:#fff; font-weight:700; letter-spacing:.04em; text-transform:uppercase; font-size:12px; }
+    .open .logo-pin { opacity:1; transform:translateY(0); }
+
+    /* velvet curtains */
+    .curtain { position:absolute; top:0; bottom:0; width:52vw; z-index:10;
+      filter:drop-shadow(0 12px 16px rgba(0,0,0,.45));
+      background:
+        radial-gradient(120% 140% at 50% 10%, rgba(255,255,255,.08), rgba(255,255,255,0) 40%),
+        repeating-linear-gradient(90deg, rgba(0,0,0,.20) 0 2px, rgba(0,0,0,0) 2px 30px),
+        linear-gradient(180deg,#5d0a0a 0%, #2b0202 40%, #190000 100%);
+      background-blend-mode:screen, multiply, normal;
+      box-shadow:inset 0 -80px 160px rgba(0,0,0,.6);
+      transform:translateX(0);
+      transition:transform var(--speed) ease-in-out;
     }
+    .curtain.left  { left:0;  transform-origin:left  center; border-right:2px solid gold; }
+    .curtain.right { right:0; transform-origin:right center; border-left: 2px solid gold; }
+    .rope { position:absolute; top:50%; width:100%; height:8px; background:linear-gradient(90deg,#7d2,#ed0,#a60);
+      box-shadow:0 2px 6px rgba(0,0,0,.4) inset; opacity:.35; }
 
-    /* =============== STAR PARTICLES =============== */
-    .sky { position: absolute; inset: 0; overflow: hidden; z-index: 1; pointer-events: none; }
-    .star { position: absolute; width: 10px; height: 10px; opacity: 0; }
-    .star::before { content: "★"; display: block; font-size: 10px; }
-    .star.gold { color: #ffd54a; }
-    .star.white { color: #fff; }
+    /* states */
+    .open .curtain.left  { transform:translateX(-102%); }
+    .open .curtain.right { transform:translateX( 102%); }
 
-    /* =============== TICKER =============== */
-    .ticker {
-      grid-row: 2; width: 100%; height: 44px;
-      display: grid; align-items: center;
-      background: linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.35));
-      border-top: 1px solid rgba(255,255,255,.08);
-      overflow: hidden; opacity: 0; transition: opacity .6s ease;
-    }
-    .ticker.on { opacity: 1; }
-    .ticker-track { white-space: nowrap; will-change: transform; animation: scroll 20s linear infinite; }
-    @keyframes scroll { from { transform: translateX(100%);} to { transform: translateX(-100%);} }
-
-    /* =============== LOGO PIN =============== */
-    .logo-pin {
-      position: absolute; right: 1.2rem; top: 1.2rem; z-index: 3; opacity: 0; transform: translateY(-8px);
-      transition: opacity .8s ease, transform .8s ease;
-      background: rgba(0,0,0,.35);
-      border: 1px solid rgba(255,255,255,.1);
-      border-radius: 12px; padding: .5rem .65rem;
-      display: grid; grid-auto-flow: column; gap: .5rem; align-items: center;
-      backdrop-filter: blur(2px);
-    }
-    .logo-pin img { height: 40px; width: auto; display: block; }
-    .logo-pin span { color: #fff; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; font-size: 12px; }
-
-    /* =============== STATES (open/close) =============== */
-    .open .curtain.left  { animation: openLeft var(--speed,1.6s) ease-in forwards; }
-    .open .curtain.right { animation: openRight var(--speed,1.6s) ease-in forwards; }
-    .closed .curtain.left, .closing .curtain.left  { transform: translateX(0); }
-    .closed .curtain.right, .closing .curtain.right { transform: translateX(0); }
-
-    @keyframes openLeft { to { transform: translateX(-102%); } }
-    @keyframes openRight { to { transform: translateX(102%); } }
-
-    .open .logo-pin { opacity: 1; transform: translateY(0); }
+    /* stars */
+    .star { position:absolute; width:10px; height:10px; opacity:0; }
+    .star::before { content:"★"; display:block; font-size:10px; }
+    .star.gold { color:#ffd54a; } .star.white{ color:#fff; }
+    @keyframes twinkle { 0%,100%{opacity:.0; transform:scale(.8) translateY(0)} 50%{opacity:1; transform:scale(1) translateY(-4px)} }
   </style>
 </head>
 <body>
-  <div id="stage" class="stage closed" style="--speed:1.8s">
-    <!-- Curtains -->
-    <div class="curtain left">
-      <div class="rope"></div>
-    </div>
-    <div class="curtain right">
-      <div class="rope"></div>
-    </div>
+  <div id="stage" class="stage closed">
+    <!-- curtains -->
+    <div class="curtain left"><div class="rope"></div></div>
+    <div class="curtain right"><div class="rope"></div></div>
 
-    <!-- Stars layer -->
+    <!-- stars -->
     <div class="sky" id="sky"></div>
 
-    <!-- Banner -->
+    <!-- banner -->
     <div class="banner-wrap">
       <div id="banner" class="banner" aria-live="polite">ROCK ★ STAR</div>
       <div id="subtitle" class="subtitle"></div>
     </div>
 
-    <!-- Logo Pin (optional) -->
+    <!-- logo pin (optional) -->
     <div id="logoPin" class="logo-pin" hidden>
       <img id="logoImg" alt="Logo" />
       <span id="logoText"></span>
     </div>
 
-    <!-- Ticker (optional) -->
+    <!-- ticker (optional) -->
     <div id="ticker" class="ticker"><div id="tickerTrack" class="ticker-track"></div></div>
   </div>
 
   <script>
-    /**
-     * ROCK STAR Curtain Overlay
-     * Controls (keyboard):
-     *  O = open,  C = close,  Space = toggle
-     *  1/2/3 = star burst presets
-     *  T     = test banner pulse
-     *
-     * URL Params:
-     *  openAt=ms        (auto-open after N ms, default 800)
-     *  speed=ms         (curtain speed in ms, default 1800)
-     *  text=...         (banner text, default "ROCK ★ STAR")
-     *  subtitle=...     (small line under banner)
-     *  logo=URL         (shows logo pin)
-     *  label=...        (text next to logo)
-     *  ticker=...       (turns on ticker, comma-separated items)
-     *  stars=0|1        (enable star particles, default 1)
-     *  loop=0|1         (auto close+reopen loop)
-     */
+    /* URL controls:
+       openAt(ms)=800 | speed(ms)=1800 | text=... | subtitle=...
+       logo=URL | label=... | ticker=a|b|c | stars=0|1 | loop=0|1
+    */
+    const qs   = new URLSearchParams(location.search);
+    const openDelay = +(qs.get('openAt') ?? 800);
+    const speedMs   = +(qs.get('speed')  ?? 1800);
+    const loop      =  qs.get('loop') === '1';
+    const starsOn   =  qs.get('stars') !== '0';
 
-    const qs = new URLSearchParams(location.search);
-    const stage = document.getElementById('stage');
-    const banner = document.getElementById('banner');
-    const subtitle = document.getElementById('subtitle');
-    const ticker = document.getElementById('ticker');
+    const stage   = document.getElementById('stage');
+    const banner  = document.getElementById('banner');
+    const subtitle= document.getElementById('subtitle');
+    const ticker  = document.getElementById('ticker');
     const tickerTrack = document.getElementById('tickerTrack');
-    const sky = document.getElementById('sky');
+    const sky     = document.getElementById('sky');
     const logoPin = document.getElementById('logoPin');
     const logoImg = document.getElementById('logoImg');
-    const logoText = document.getElementById('logoText');
+    const logoText= document.getElementById('logoText');
 
-    const openDelay = +(qs.get('openAt') ?? 800);
-    const speedMs = +(qs.get('speed') ?? 1800);
-    const loop = qs.get('loop') === '1';
-    const starsOn = qs.get('stars') !== '0';
+    stage.style.setProperty('--speed', (speedMs/1000) + 's');
 
-    stage.style.setProperty('--speed', (speedMs/1000)+'s');
-
-    // Banner text + subtitle
-    if (qs.get('text')) banner.textContent = qs.get('text');
+    if (qs.get('text'))     banner.textContent   = qs.get('text');
     if (qs.get('subtitle')) subtitle.textContent = qs.get('subtitle');
 
-    // Logo pin
     if (qs.get('logo')) {
       logoImg.src = qs.get('logo');
       logoText.textContent = qs.get('label') || '';
       logoPin.hidden = false;
     }
 
-    // Ticker
     if (qs.get('ticker')) {
       const items = qs.get('ticker').split(',').map(s => s.trim()).filter(Boolean);
       tickerTrack.textContent = '  •  ' + items.join('  •  ') + '  •  ';
       ticker.classList.add('on');
     }
+// Optional tuning via URL:
+// padTop=px|vh (e.g. 60px or 6vh), safeMax=vw%|px, scale=0.8..1.4, vignette=rgba(...) or #000
+const padTop  = qs.get('padTop');   if (padTop)  document.documentElement.style.setProperty('--padTop', padTop);
+const safeMax = qs.get('safeMax');  if (safeMax) document.documentElement.style.setProperty('--safeMax', safeMax);
+const scale   = qs.get('scale');    if (scale)   document.documentElement.style.setProperty('--scale', scale);
+const vig     = qs.get('vignette'); if (vig)     document.documentElement.style.setProperty('--vignette', vig);
 
-    // Stars
-    function random(min,max){ return Math.random()*(max-min)+min; }
-    function spawnStars(n=24){
-      if (!starsOn) return;
-      for (let i=0;i<n;i++){
-        const s = document.createElement('div');
-        s.className = 'star ' + (Math.random()>0.5?'gold':'white');
-        const x = random(0, 100); const y = random(10, 80);
-        s.style.left = x + 'vw'; s.style.top = y + 'vh';
-        const dur = random(1.8, 4.5);
-        const delay = random(0, 1.2);
-        s.style.animation = `twinkle ${dur}s ease-in-out ${delay}s infinite`;
-        sky.appendChild(s);
-      }
-    }
-    const style = document.createElement('style');
-    style.textContent = `@keyframes twinkle { 0%,100% {opacity:.0; transform: scale(.8) translateY(0)} 50% {opacity:1; transform: scale(1) translateY(-4px)} }`;
-    document.head.appendChild(style);
+function spawnStars(n) {
+  // pick based on viewport: fewer on small canvases
+  const base = Math.max(18, Math.min(36, Math.floor(window.innerWidth / 50)));
+  const count = n || base;
+  for (let i = 0; i < count; i++) {
+    const s = document.createElement('div');
+    s.className = 'star ' + (Math.random() > 0.6 ? 'gold' : 'white');
+    s.style.left = (Math.random() * 96 + 2) + 'vw';
+    s.style.top  = (8 + Math.random() * 72) + 'vh';
+    const d = (1.8 + Math.random() * 2.7).toFixed(2);
+    const t = (Math.random() * 1.2).toFixed(2);
+    s.style.animation = `twinkle ${d}s ease-in-out ${t}s infinite`;
+    sky.appendChild(s);
+  }
+}
 
-    // Curtain controls
-    function openCurtains(){ stage.classList.remove('closed','closing'); stage.classList.add('open'); spawnStars(28); }
-    function closeCurtains(){ stage.classList.remove('open'); stage.classList.add('closing'); setTimeout(()=>{ stage.classList.remove('closing'); stage.classList.add('closed'); }, speedMs+20); }
+
+    function openCurtains(){ stage.classList.remove('closed'); stage.classList.add('open'); spawnStars(); }
+    function closeCurtains(){ stage.classList.remove('open');   stage.classList.add('closed'); }
     function toggleCurtains(){ stage.classList.contains('open') ? closeCurtains() : openCurtains(); }
 
-    // Auto open
     setTimeout(openCurtains, Math.max(0, openDelay));
 
-    // Optional loop (open/close/open ...)
     if (loop){
-      setInterval(()=>{ toggleCurtains(); }, Math.max(2200, speedMs + 2000));
+      setInterval(() => { toggleCurtains(); }, Math.max(2200, speedMs + 2000));
     }
 
-    // Keyboard
-    addEventListener('keydown', (e)=>{
-      if (e.code === 'Space') toggleCurtains();
-      if (e.key.toLowerCase() === 'o') openCurtains();
-      if (e.key.toLowerCase() === 'c') closeCurtains();
-      if (e.key === '1') spawnStars(20);
-      if (e.key === '2') spawnStars(40);
-      if (e.key === '3') spawnStars(80);
-      if (e.key.toLowerCase() === 't') banner.animate([
-        { filter: 'brightness(1)' },{ filter: 'brightness(1.6)' },{ filter: 'brightness(1)'}
-      ], { duration: 600, easing: 'ease-in-out' });
-    });
-
-    // postMessage API for external controllers (OBS browser source, etc.)
-    // window.postMessage({ type:'rockstar', action:'open'|'close'|'toggle', text?, subtitle?, ticker?, logo?, label?, speed? })
-    addEventListener('message', (e)=>{
-      const msg = e.data || {}; if (msg.type !== 'rockstar') return;
-      if (msg.text != null) banner.textContent = msg.text;
-      if (msg.subtitle != null) subtitle.textContent = msg.subtitle;
-      if (msg.speed) { stage.style.setProperty('--speed', (msg.speed/1000)+'s'); }
-      if (msg.logo) { logoImg.src = msg.logo; logoPin.hidden = false; }
-      if (msg.label != null) { logoText.textContent = msg.label; }
-      if (msg.ticker != null) {
-        if (msg.ticker === '' || msg.ticker === false) {
-          ticker.classList.remove('on'); tickerTrack.textContent = '';
-        } else {
-          const list = Array.isArray(msg.ticker) ? msg.ticker : String(msg.ticker).split(',');
-          tickerTrack.textContent = '  •  ' + list.map(s=>String(s).trim()).filter(Boolean).join('  •  ') + '  •  ';
+    // postMessage API from parent (OBS/Next)
+    // window.postMessage({type:'rockstar', action:'open'|'close'|'toggle', text?, subtitle?, ticker?, logo?, label?, speed?})
+    addEventListener('message', (e) => {
+      const msg = e.data || {};
+      if (msg.type !== 'rockstar') return;
+      if (msg.speed) stage.style.setProperty('--speed', (msg.speed/1000) + 's');
+      if (msg.text) banner.textContent = msg.text;
+      if (msg.subtitle !== undefined) subtitle.textContent = msg.subtitle || '';
+      if (msg.logo !== undefined) {
+        if (msg.logo) { logoImg.src = msg.logo; logoText.textContent = msg.label || ''; logoPin.hidden = false; }
+        else { logoPin.hidden = true; }
+      }
+      if (msg.ticker !== undefined) {
+        if (msg.ticker) {
+          const items = String(msg.ticker).split(',').map(s => s.trim()).filter(Boolean);
+          tickerTrack.textContent = '  •  ' + items.join('  •  ') + '  •  ';
           ticker.classList.add('on');
+        } else {
+          ticker.classList.remove('on');
+          tickerTrack.textContent = '';
         }
       }
       if (msg.action === 'open') openCurtains();
-      if (msg.action === 'close') closeCurtains();
-      if (msg.action === 'toggle') toggleCurtains();
+      else if (msg.action === 'close') closeCurtains();
+      else if (msg.action === 'toggle') toggleCurtains();
     });
   </script>
 </body>

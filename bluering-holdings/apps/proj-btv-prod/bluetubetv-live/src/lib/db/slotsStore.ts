@@ -129,3 +129,104 @@ export async function getMetrics(gameId?: string) {
     scans: m.scans.filter((x) => x.gameId === gameId),
   };
 }
+// NEW: path per channel (default CH1)
+function fileFor(channel = "CH1") {
+  const safe = String(channel || "CH1").toUpperCase();
+  return {
+    slots: path.join(DATA_DIR, `slots-${safe}.json`),
+    metrics: path.join(DATA_DIR, `metrics-${safe}.json`)
+  };
+}
+
+async function ensureFor(channel = "CH1") {
+  await fs.mkdir(DATA_DIR, { recursive: true });
+  const f = fileFor(channel);
+  try { await fs.access(f.slots); }
+  catch {
+    const base: SlotSchedule = {
+      gameId: "demo-001",
+      updatedAt: new Date().toISOString(),
+      activeSlot: "Q1",
+      activeIndex: 0,
+      slots: { Q1: [], Q2: [], HALF: [], Q3: [], Q4: [] },
+    };
+    await fs.writeFile(f.slots, JSON.stringify(base, null, 2));
+  }
+  try { await fs.access(f.metrics); }
+  catch {
+    await fs.writeFile(f.metrics, JSON.stringify({ impressions: [], scans: [] }, null, 2));
+  }
+}
+
+// Replace your read/write with channel-aware variants
+export async function readScheduleFor(channel = "CH1"): Promise<SlotSchedule> {
+  await ensureFor(channel);
+  const { slots } = fileFor(channel);
+  return JSON.parse(await fs.readFile(slots, "utf8"));
+}
+export async function writeScheduleFor(channel: string, s: SlotSchedule) {
+  const { slots } = fileFor(channel);
+  s.updatedAt = new Date().toISOString();
+  await fs.writeFile(slots, JSON.stringify(s, null, 2));
+}
+
+// Channel-aware versions of your mutators (showing one; copy pattern to others)
+export async function addItemFor(
+  channel: string,
+  slot: SlotKey,
+  item: Omit<SlotItem, "id" | "active"> & Partial<Pick<SlotItem, "id" | "active">>
+) {
+  const s = await readScheduleFor(channel);
+  const id = item.id ?? randomUUID();
+  const active = item.active ?? true;
+  const full = { ...(item as any), id, active } as SlotItem;
+  s.slots[slot].push(full);
+  await writeScheduleFor(channel, s);
+  return id;
+}
+
+export async function setActiveSlotFor(channel: string, slot: SlotKey) {
+  const s = await readScheduleFor(channel);
+  s.activeSlot = slot;
+  await writeScheduleFor(channel, s);
+}
+
+export async function setActiveIndexFor(channel: string, i: number) {
+  const s = await readScheduleFor(channel);
+  const list = s.slots?.[s.activeSlot] ?? [];
+  s.activeIndex = Math.min(Math.max(0, i), Math.max(0, list.length - 1));
+  await writeScheduleFor(channel, s);
+}
+
+export async function getCurrentItemFor(channel = "CH1"): Promise<SlotItem | null> {
+  const s = await readScheduleFor(channel);
+  const list = s.slots?.[s.activeSlot] ?? [];
+  const idx = Number.isFinite(s.activeIndex) ? s.activeIndex : 0;
+  return (list[idx]?.active ? list[idx] : undefined) ?? list.find(x => x.active) ?? null;
+}
+async function writeMetricsFor(channel: string, m: Metrics) {
+  const { metrics } = fileFor(channel);
+  await fs.writeFile(metrics, JSON.stringify(m, null, 2));
+}
+
+async function readMetricsFor(channel: string): Promise<Metrics> {
+  await ensureFor(channel);
+  const { metrics } = fileFor(channel);
+  return JSON.parse(await fs.readFile(metrics, "utf8"));
+}
+export async function recordImpressionFor(channel: string, ev: ImpressionEvent) {
+  const m = await readMetricsFor(channel);
+  m.impressions.push(ev); await writeMetricsFor(channel, m);
+}
+export async function recordScanFor(channel: string, ev: ScanEvent) {
+  const m = await readMetricsFor(channel);
+  m.scans.push(ev); await writeMetricsFor(channel, m);
+}
+export async function getMetricsFor(channel: string, gameId?: string) {
+  const m = await readMetricsFor(channel);
+  if (!gameId) return m;
+  return {
+    impressions: m.impressions.filter(x => x.gameId === gameId),
+    scans: m.scans.filter(x => x.gameId === gameId),
+  };
+}

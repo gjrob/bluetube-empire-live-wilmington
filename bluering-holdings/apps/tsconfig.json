@@ -1,0 +1,6 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./proj-btv-prod/bluetubetv-live" }
+  ]
+}

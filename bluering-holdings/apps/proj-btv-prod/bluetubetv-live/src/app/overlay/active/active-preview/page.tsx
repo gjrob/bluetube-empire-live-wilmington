@@ -1,5 +1,6 @@
 // bluetubetv-live/src/app/overlay/active/page.tsx
-import { readSchedule } from "../../../lib/db/slotsStore";  
+import { readSchedule } from "@lib/db/slotsStore";
+
 // src/lib/schemas/slots.ts
 
 // quarters
@@ -84,7 +85,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ActiveOverlayPage() {
   const s = await readSchedule();
-  const item = (s.slots[s.activeSlot] || []).find(x => x.active) || null;
+  const item: SlotItem | null = (s.slots[s.activeSlot] || []).find((x: SlotItem) => x.active) || null;
 
   const overlayUrl = toOverlayUrl(item);
 
